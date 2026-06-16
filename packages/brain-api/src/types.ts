@@ -1,0 +1,78 @@
+import type { Vec2 } from "./vec.js";
+
+/** Which side of the pitch a team plays. "home" defends the left goal (x=0). */
+export type Side = "home" | "away";
+
+/** Read-only view of a single player, as seen by a brain each tick. */
+export interface PlayerView {
+  readonly id: number;
+  readonly side: Side;
+  readonly pos: Vec2;
+  readonly vel: Vec2;
+  /** True if this player currently controls the ball. */
+  readonly hasBall: boolean;
+}
+
+export interface BallView {
+  readonly pos: Vec2;
+  readonly vel: Vec2;
+  /** id of the player controlling the ball, or null if loose. */
+  readonly ownerId: number | null;
+}
+
+export interface FieldInfo {
+  readonly width: number;
+  readonly height: number;
+  /** Vertical span of the goal mouth, centered on height/2. */
+  readonly goalHeight: number;
+}
+
+/**
+ * Everything a brain can observe on a given tick. Fully read-only:
+ * the engine owns all state; a brain may only return Intents.
+ */
+export interface WorldView {
+  readonly tick: number;
+  readonly dt: number;
+  readonly field: FieldInfo;
+  /** The side this brain is controlling. */
+  readonly side: Side;
+  /** +1 if this team attacks toward increasing x, -1 otherwise. */
+  readonly attackDir: 1 | -1;
+  /** x-coordinate of the goal this team is shooting at. */
+  readonly targetGoalX: number;
+  /** x-coordinate of the goal this team defends. */
+  readonly ownGoalX: number;
+  readonly ball: BallView;
+  readonly teammates: readonly PlayerView[];
+  readonly opponents: readonly PlayerView[];
+  readonly score: { readonly home: number; readonly away: number };
+}
+
+/** A per-player command. The engine validates and clamps everything. */
+export type Intent =
+  | { kind: "idle" }
+  /** Steer toward a point at full speed (engine clamps speed). */
+  | { kind: "move"; to: Vec2 }
+  /** Move in a direction (vector need not be normalized). */
+  | { kind: "moveDir"; dir: Vec2 }
+  /** Kick the ball toward a point at pass speed. Ignored if not in control. */
+  | { kind: "pass"; to: Vec2 }
+  /** Kick the ball toward a point at shot speed. Ignored if not in control. */
+  | { kind: "shoot"; to: Vec2 };
+
+/** Map of playerId -> Intent for the players this brain controls. */
+export type TeamIntent = Record<number, Intent>;
+
+/**
+ * The contract every team brain implements.
+ *
+ * The HUMAN designs the strategy; the code here is only the mechanical
+ * translation of that strategy into Intents. See CLAUDE.md.
+ */
+export interface Brain {
+  /** Optional human-readable name shown in match output and replays. */
+  readonly name?: string;
+  /** Called once per tick. Return an Intent for each controlled player. */
+  decide(view: WorldView): TeamIntent;
+}

@@ -1,0 +1,11 @@
+{
+  "name": "@kr/engine",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@kr/brain-api": "0.1.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "cladu-regel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vibe-coding soccer: humans design the brain, Claude only writes the code.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "match": "tsx packages/runner/src/cli.ts",
+    "viewer": "tsx packages/viewer/serve.ts",
+    "demo": "npm run match -- formation chaser --seed 7 --out packages/viewer/replay.json && npm run viewer",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0"
+  }
+}
