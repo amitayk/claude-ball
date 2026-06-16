@@ -3,4 +3,5 @@ dist/
 *.log
 .DS_Store
 packages/viewer/replay.json
+templates/brain-starter/viewer/replay.json
 *.replay.json

@@ -21,7 +21,7 @@ Or step by step:
 
 ```bash
 npm run match -- formation chaser --seed 7 --out packages/viewer/replay.json
-npm run viewer        # http://localhost:5173
+npm run viewer        # http://localhost:5177
 ```
 
 ### Running brains

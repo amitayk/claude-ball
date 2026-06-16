@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Vibe-coding soccer: humans design the brain, Claude only writes the code.",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "templates/brain-starter"
   ],
   "scripts": {
     "match": "tsx packages/runner/src/cli.ts",
