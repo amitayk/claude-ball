@@ -3,41 +3,53 @@ import { dist } from "@kr/brain-api";
 
 /**
  * TACTIC ("possession") — keep the ball, never shoot.
- *   - Phase 1 (no ball): players 1 & 2 rush the ball; 3 & 4 drop to our goal.
- *   - Phase 2 (we have it): the carrier passes to an open player whenever there
- *     is a clean lane to one; otherwise he dribbles away from the nearest
- *     opponents. Off the ball, everyone spreads to get open. Never shoots.
+ *   - Phase 1 (no ball): players 1 & 2 rush the ball; 3 & 4 drop to our goal
+ *     (but break onto a pass heading their way).
+ *   - On the ball: the carrier does NOT pass right away. He runs to the closest
+ *     corner of the field; 2s after gaining the ball he passes to the most open
+ *     teammate.
+ *   - While a teammate holds the ball, everyone else tries to get an open line
+ *     from him at the greatest distance they can.
+ *   - Never shoots.
  */
 export const brain: Brain = {
   name: "possession",
   params: {
     laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance" },
     laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than" },
-    openMin: { default: 60, min: 20, max: 160, step: 5, label: "Open space needed" },
-    evadeRange: { default: 220, min: 60, max: 400, step: 10, label: "Evade range" },
-    supportRadius: { default: 190, min: 80, max: 350, step: 10, label: "Support distance" },
+    cornerRunSec: { default: 2.0, min: 0, max: 5, step: 0.1, label: "Corner run time (s)" },
+    cornerInset: { default: 40, min: 10, max: 150, step: 5, label: "Corner inset" },
     receivePath: { default: 130, min: 40, max: 300, step: 10, label: "Receive path width" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const LANE_CLEARANCE = p.laneClearance!;
     const LANE_IGNORE_NEAR = p.laneIgnoreNear!;
-    const OPEN_MIN = p.openMin!;
-    const EVADE_RANGE = p.evadeRange!;
-    const SUPPORT_RADIUS = p.supportRadius!;
+    const CORNER_RUN_SEC = p.cornerRunSec!;
+    const CORNER_INSET = p.cornerInset!;
     const RECEIVE_PATH = p.receivePath!;
 
     const intents: TeamIntent = {};
     const W = view.field.width;
     const H = view.field.height;
-    const center: Vec2 = { x: W / 2, y: H / 2 };
     const clampX = (x: number) => Math.max(20, Math.min(W - 20, x));
     const clampY = (y: number) => Math.max(20, Math.min(H - 20, y));
+
+    // Per-holder possession clock (derived from the tick stream).
+    const owner = view.ball.ownerId;
+    const ownerIsTeammate = owner != null && view.teammates.some((t) => t.id === owner);
+    if (view.tick < lastTick) {
+      trackedOwner = null;
+      possessionStartTick = view.tick;
+    }
+    lastTick = view.tick;
+    if (ownerIsTeammate && owner !== trackedOwner) possessionStartTick = view.tick;
+    trackedOwner = owner;
+    const held = (view.tick - possessionStartTick) * view.dt;
 
     const squad = [...view.teammates].sort((a, b) => a.id - b.id);
     const rushers = squad.slice(0, 2); // players 1 & 2
     const outlets = squad.slice(2); // players 3 & 4
     const carrier = view.teammates.find((t) => t.hasBall) ?? null;
-    const weHaveBall = carrier !== null;
 
     // --- helpers --------------------------------------------------------
     const laneBlocked = (from: Vec2, to: Vec2): boolean => {
@@ -56,106 +68,84 @@ export const brain: Brain = {
     };
     const openness = (pt: Vec2) =>
       view.opponents.length ? Math.min(...view.opponents.map((o) => dist(o.pos, pt))) : Infinity;
-    const nearestOpp = (pt: Vec2): PlayerView | null => {
+
+    // Closest of the 4 corners to a point.
+    const corners: Vec2[] = [
+      { x: CORNER_INSET, y: CORNER_INSET },
+      { x: CORNER_INSET, y: H - CORNER_INSET },
+      { x: W - CORNER_INSET, y: CORNER_INSET },
+      { x: W - CORNER_INSET, y: H - CORNER_INSET },
+    ];
+    const closestCorner = (pt: Vec2): Vec2 =>
+      corners.reduce((a, b) => (dist(a, pt) <= dist(b, pt) ? a : b));
+
+    // Most-open teammate (preferring a clean lane), or null.
+    const mostOpenTeammate = (me: PlayerView): PlayerView | null => {
       let best: PlayerView | null = null;
-      let bestD = Infinity;
-      for (const o of view.opponents) {
-        const d = dist(o.pos, pt);
-        if (d < bestD) {
-          bestD = d;
-          best = o;
+      let bestScore = -1;
+      let any: PlayerView | null = null;
+      let anyScore = -1;
+      for (const t of view.teammates) {
+        if (t.id === me.id) continue;
+        const s = openness(t.pos);
+        if (s > anyScore) {
+          anyScore = s;
+          any = t;
+        }
+        if (!laneBlocked(me.pos, t.pos) && s > bestScore) {
+          bestScore = s;
+          best = t;
         }
       }
-      return best;
+      return best ?? any;
     };
 
-    // Is a loose ball in flight heading toward this player (on its path)?
+    // A spot far from the carrier with an open line to him (so we offer a pass
+    // at maximum distance). Search outward from our current angle for a clear line.
+    const openFarFrom = (me: PlayerView, from: Vec2): Vec2 => {
+      const base = Math.atan2(me.pos.y - from.y, me.pos.x - from.x);
+      const offs = [0, 0.5, -0.5, 1.0, -1.0, 1.5, -1.5, 2.2, -2.2, Math.PI];
+      let fallback: Vec2 | null = null;
+      for (const off of offs) {
+        const a = base + off;
+        const pt = { x: clampX(from.x + Math.cos(a) * 3000), y: clampY(from.y + Math.sin(a) * 3000) };
+        if (!fallback) fallback = pt;
+        if (!laneBlocked(from, pt)) return pt;
+      }
+      return fallback!;
+    };
+
+    // Is a loose ball heading toward this player (on its path)?
     const ballHeadingToward = (me: PlayerView): boolean => {
-      if (view.ball.ownerId !== null) return false; // only loose balls
+      if (view.ball.ownerId !== null) return false;
       const bv = view.ball.vel;
       const speed = Math.hypot(bv.x, bv.y);
       if (speed < 40) return false;
       const rx = me.pos.x - view.ball.pos.x;
       const ry = me.pos.y - view.ball.pos.y;
-      if (rx * bv.x + ry * bv.y <= 0) return false; // ball moving away from me
+      if (rx * bv.x + ry * bv.y <= 0) return false;
       const perp = Math.abs(rx * bv.y - ry * bv.x) / speed;
       return perp < RECEIVE_PATH;
     };
 
-    // Most-open teammate with a clean lane (a safe pass), or null.
-    const openPassTarget = (me: PlayerView): PlayerView | null => {
-      let best: PlayerView | null = null;
-      let bestScore = OPEN_MIN; // must be at least this open to be worth a pass
-      for (const t of view.teammates) {
-        if (t.id === me.id) continue;
-        if (laneBlocked(me.pos, t.pos)) continue;
-        const s = openness(t.pos);
-        if (s > bestScore) {
-          bestScore = s;
-          best = t;
-        }
-      }
-      return best;
-    };
-
-    // Dribble away from the nearest opponents (with a pull to center to avoid
-    // getting trapped against an edge).
-    const dribbleAway = (me: PlayerView): TeamIntent[number] => {
-      let ax = 0;
-      let ay = 0;
-      for (const o of view.opponents) {
-        const dx = me.pos.x - o.pos.x;
-        const dy = me.pos.y - o.pos.y;
-        const d = Math.hypot(dx, dy) || 1;
-        if (d < EVADE_RANGE) {
-          ax += dx / (d * d);
-          ay += dy / (d * d);
-        }
-      }
-      let dx: number;
-      let dy: number;
-      if (ax === 0 && ay === 0) {
-        dx = center.x - me.pos.x;
-        dy = center.y - me.pos.y;
-      } else {
-        const L = Math.hypot(ax, ay);
-        const cx = center.x - me.pos.x;
-        const cy = center.y - me.pos.y;
-        const CL = Math.hypot(cx, cy) || 1;
-        dx = (ax / L) * 0.75 + (cx / CL) * 0.25;
-        dy = (ay / L) * 0.75 + (cy / CL) * 0.25;
-      }
-      return { kind: "move", to: { x: me.pos.x + dx * 300, y: me.pos.y + dy * 300 } };
-    };
-
-    // Spread the given players around the ball to get open for a pass.
-    const supportSpread = (players: PlayerView[]) => {
-      const angles = [Math.PI / 2, (Math.PI * 7) / 6, (Math.PI * 11) / 6];
-      [...players].sort((a, b) => a.id - b.id).forEach((me, i) => {
-        const a = angles[i] ?? 0;
-        let tx = clampX(view.ball.pos.x + Math.cos(a) * SUPPORT_RADIUS);
-        let ty = clampY(view.ball.pos.y + Math.sin(a) * SUPPORT_RADIUS);
-        const no = nearestOpp({ x: tx, y: ty });
-        if (no && dist({ x: tx, y: ty }, no.pos) < OPEN_MIN) {
-          const dx = tx - no.pos.x;
-          const dy = ty - no.pos.y;
-          const d = Math.hypot(dx, dy) || 1;
-          tx = clampX(tx + (dx / d) * OPEN_MIN);
-          ty = clampY(ty + (dy / d) * OPEN_MIN);
-        }
-        intents[me.id] = { kind: "move", to: { x: tx, y: ty } };
-      });
-    };
-
+    // --- on the ball ----------------------------------------------------
     if (carrier) {
-      // We hold it: carrier passes to an open man or dribbles away; rest support.
-      const tgt = openPassTarget(carrier);
-      intents[carrier.id] = tgt ? { kind: "pass", to: tgt.pos } : dribbleAway(carrier);
-      supportSpread(view.teammates.filter((t) => t.id !== carrier.id));
+      if (held >= CORNER_RUN_SEC) {
+        const tgt = mostOpenTeammate(carrier);
+        intents[carrier.id] = tgt
+          ? { kind: "pass", to: tgt.pos }
+          : { kind: "move", to: closestCorner(carrier.pos) };
+      } else {
+        intents[carrier.id] = { kind: "move", to: closestCorner(carrier.pos) };
+      }
+      // Teammates get an open line from the carrier at the most distance they can.
+      view.teammates.forEach((me) => {
+        if (me.id === carrier.id) return;
+        intents[me.id] = { kind: "move", to: openFarFrom(me, carrier.pos) };
+      });
     } else {
-      // No possession (phase 1): players 1 & 2 rush the ball. Players 3 & 4 hold
-      // near our goal — but an outlet the ball is heading toward runs onto it to
-      // receive a pass instead of sitting at home.
+      // No possession: players 1 & 2 rush the ball. Players 3 & 4 hold near our
+      // goal, but break onto a pass heading their way.
       rushers.forEach((r) => {
         intents[r.id] = { kind: "move", to: view.ball.pos };
       });
@@ -173,5 +163,10 @@ export const brain: Brain = {
     return intents;
   },
 };
+
+// Per-holder possession bookkeeping (module-level, derived from the tick stream).
+let trackedOwner: number | null = null;
+let possessionStartTick = 0;
+let lastTick = -1;
 
 export default brain;
