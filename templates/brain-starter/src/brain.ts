@@ -149,20 +149,28 @@ export const brain: Brain = {
     };
 
     // A "wide open" teammate: no opponent anywhere near him AND a clear lane.
+    // Prefer a wide-open man in the enemy half; else the most open one anywhere.
     const wideOpenTarget = (me: PlayerView): PlayerView | null => {
       let best: PlayerView | null = null;
-      let bestScore = WIDE_OPEN_DIST; // must be at least this open
+      let bestScore = -1;
+      let fwd: PlayerView | null = null;
+      let fwdScore = -1;
       for (const t of view.teammates) {
         if (t.id === me.id) continue;
         if (dist(me.pos, t.pos) < WIDE_OPEN_MIN) continue; // too close — don't bother
         if (laneBlocked(me.pos, t.pos)) continue;
         const s = openness(t.pos);
-        if (s >= bestScore) {
+        if (s < WIDE_OPEN_DIST) continue; // not wide open
+        if (s > bestScore) {
           bestScore = s;
           best = t;
         }
+        if ((t.pos.x - W / 2) * view.attackDir > 0 && s > fwdScore) {
+          fwdScore = s;
+          fwd = t; // wide open AND in the enemy half
+        }
       }
-      return best;
+      return fwd ?? best;
     };
 
     // Where to aim a pass (and who it's for): clear lane, then wall pass, then forced.
