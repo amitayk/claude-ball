@@ -13,6 +13,13 @@ export const RULES = {
 
   playersPerSide: 4,
 
+  /**
+   * Each kickoff, every player's start position is nudged by up to this many
+   * units on each axis (seeded, so a given seed always produces the same
+   * game). Gives matches some variety; set to 0 for identical layouts.
+   */
+  kickoffJitter: 20,
+
   player: {
     radius: 12,
     /** Max speed in units/second. */

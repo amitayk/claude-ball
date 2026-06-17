@@ -1,6 +1,7 @@
 import type { Brain, ParamValues, TeamIntent } from "@kr/brain-api";
 import { resolveParams } from "@kr/brain-api";
 import { RULES } from "./constants.js";
+import { Rng } from "./rng.js";
 import { kickoff, type WorldState } from "./world.js";
 import { step, viewFor } from "./step.js";
 
@@ -75,13 +76,14 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
   const homeParams = resolveParams(home.params, opts.homeParams);
   const awayParams = resolveParams(away.params, opts.awayParams);
 
-  let world = kickoff();
+  const rng = new Rng(seed);
+  let world = kickoff(rng);
   const frames: ReplayFrame[] = [snapshot(world)];
 
   for (let i = 0; i < ticks; i++) {
     const homeIntents = safeDecide(home, world, "home", homeParams);
     const awayIntents = safeDecide(away, world, "away", awayParams);
-    world = step(world, homeIntents, awayIntents);
+    world = step(world, homeIntents, awayIntents, rng);
     frames.push(snapshot(world));
   }
 

@@ -69,6 +69,9 @@ select, input[type="number"] {
   background: #0e1116; color: var(--text); border: 1px solid var(--line);
   border-radius: 6px; padding: 5px 8px; font: inherit; min-width: 140px;
 }
+.seedctl { display: flex; gap: 6px; align-items: center; }
+.seedctl input[type="number"] { min-width: 96px; }
+.seedctl button { padding: 5px 8px; }
 button {
   background: #21262d; color: var(--text); border: 1px solid var(--line);
   border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit;

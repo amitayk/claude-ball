@@ -289,6 +289,11 @@ $("scrub").addEventListener("input", () => {
 });
 $("opponent").addEventListener("change", () => post({ type: "setOpponent", name: $("opponent").value }));
 $("seed").addEventListener("change", () => post({ type: "setSeed", seed: Number($("seed").value) }));
+$("randomSeed").addEventListener("click", () => {
+  const s = Math.floor(Math.random() * 1_000_000) + 1;
+  $("seed").value = s;
+  post({ type: "setSeed", seed: s });
+});
 $("rerun").addEventListener("click", () => post({ type: "rerun" }));
 $("saveParams").addEventListener("click", () => post({ type: "saveParams" }));
 $("resetParams").addEventListener("click", () => post({ type: "resetParams" }));

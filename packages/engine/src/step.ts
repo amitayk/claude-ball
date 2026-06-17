@@ -1,5 +1,6 @@
 import type { Intent, PlayerView, Side, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
 import { RULES } from "./constants.js";
+import type { Rng } from "./rng.js";
 import { goalMouth, kickoff, type PlayerState, type WorldState } from "./world.js";
 
 const dt = RULES.dt;
@@ -196,7 +197,12 @@ function integrateBall(world: WorldState): Side | null {
  * Advance the world one tick given each team's intents. Mutates and returns
  * `world`. On a goal, the score is updated and the field reset to kickoff.
  */
-export function step(world: WorldState, homeIntents: TeamIntent, awayIntents: TeamIntent): WorldState {
+export function step(
+  world: WorldState,
+  homeIntents: TeamIntent,
+  awayIntents: TeamIntent,
+  rng: Rng,
+): WorldState {
   // 1. Determine possession before acting.
   world.ball.ownerId = resolveOwner(world);
 
@@ -216,7 +222,7 @@ export function step(world: WorldState, homeIntents: TeamIntent, awayIntents: Te
 
   if (scorer) {
     world.score[scorer]++;
-    const reset = kickoff(world);
+    const reset = kickoff(rng, world);
     reset.tick = world.tick;
     return reset;
   }
