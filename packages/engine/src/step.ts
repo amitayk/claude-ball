@@ -167,8 +167,14 @@ function integrateBall(world: WorldState): Side | null {
     ball.vel = { x: owner.vel.x, y: owner.vel.y };
   } else {
     ball.pos = { x: ball.pos.x + ball.vel.x * dt, y: ball.pos.y + ball.vel.y * dt };
-    ball.vel = { x: ball.vel.x * RULES.ball.friction, y: ball.vel.y * RULES.ball.friction };
-    if (Math.hypot(ball.vel.x, ball.vel.y) < RULES.ball.stopSpeed) ball.vel = { x: 0, y: 0 };
+    // Constant rolling deceleration: shave a fixed amount of speed per tick.
+    const sp = Math.hypot(ball.vel.x, ball.vel.y);
+    const next = sp - RULES.ball.deceleration * dt;
+    if (next < RULES.ball.stopSpeed) {
+      ball.vel = { x: 0, y: 0 };
+    } else {
+      ball.vel = { x: (ball.vel.x / sp) * next, y: (ball.vel.y / sp) * next };
+    }
   }
 
   const { width, height } = RULES.field;

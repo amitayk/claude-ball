@@ -28,10 +28,17 @@ export const RULES = {
 
   ball: {
     radius: 8,
-    /** Per-tick velocity retention (rolling friction). */
-    friction: 0.99,
     /** Speed below which the ball is considered stopped. */
     stopSpeed: 4,
+    /**
+     * Rolling friction as a constant deceleration (units/second²): the ball
+     * loses this much speed every second until it stops. Constant decel (rather
+     * than a per-tick multiply) means a kick's travel distance scales with the
+     * square of its speed — harder kicks go proportionally farther and the ball
+     * rolls to a natural stop. Approx stop distance ≈ speed² / (2 · decel):
+     * a 340 pass ≈ 290u, a 560 shot ≈ 780u on the 1050-wide pitch.
+     */
+    deceleration: 200,
     /** Speed imparted by a pass / a shot. */
     passSpeed: 340,
     shootSpeed: 560,
