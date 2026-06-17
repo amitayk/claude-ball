@@ -22,7 +22,8 @@ export const brain: Brain = {
     cornerCloseDist: { default: 120, min: 20, max: 400, step: 10, label: "Near-corner = pass now" },
     wideOpenDist: { default: 150, min: 60, max: 400, step: 10, label: "Wide-open radius" },
     wideOpenMinDist: { default: 150, min: 0, max: 500, step: 10, label: "Wide-open min pass length" },
-    receivePath: { default: 130, min: 40, max: 300, step: 10, label: "Receive path width" },
+    finishXFrac: { default: 0.2, min: 0.05, max: 0.5, step: 0.01, label: "Finish zone (×width)" },
+    centralBandFrac: { default: 0.6, min: 0.2, max: 1, step: 0.05, label: "Central band (Y)" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const LANE_CLEARANCE = p.laneClearance!;
@@ -32,7 +33,9 @@ export const brain: Brain = {
     const CORNER_CLOSE = p.cornerCloseDist!;
     const WIDE_OPEN_DIST = p.wideOpenDist!;
     const WIDE_OPEN_MIN = p.wideOpenMinDist!;
-    const RECEIVE_PATH = p.receivePath!;
+    const FINISH_X_FRAC = p.finishXFrac!;
+    const CENTRAL_BAND_FRAC = p.centralBandFrac!;
+    const POST_INSET = 8; // aim this far inside the post
 
     const intents: TeamIntent = {};
     const W = view.field.width;
@@ -46,9 +49,11 @@ export const brain: Brain = {
     if (view.tick < lastTick) {
       trackedOwner = null;
       possessionStartTick = view.tick;
+      lastOwnerWasTeammate = false;
     }
     lastTick = view.tick;
     if (ownerIsTeammate && owner !== trackedOwner) possessionStartTick = view.tick;
+    if (owner != null) lastOwnerWasTeammate = ownerIsTeammate;
     trackedOwner = owner;
     const held = (view.tick - possessionStartTick) * view.dt;
 
@@ -117,14 +122,13 @@ export const brain: Brain = {
 
     // Wall (bounce) pass: when no direct lane is open, aim at the mirror image
     // of a teammate across the top or bottom wall, so the ball banks off the
-    // wall to reach him. Returns the aim point (the mirror), or null.
-    const wallPassAim = (me: PlayerView): Vec2 | null => {
+    // wall to reach him. Returns the aim point (the mirror) and target id, or null.
+    const wallPassAim = (me: PlayerView): { aim: Vec2; targetId: number } | null => {
       const C = me.pos;
-      let best: Vec2 | null = null;
+      let best: { aim: Vec2; targetId: number } | null = null;
       let bestScore = -1;
       for (const t of view.teammates) {
         if (t.id === me.id) continue;
-        // wall index 0 = top (y=0), 1 = bottom (y=H)
         for (const wallY of [0, H]) {
           const mirror: Vec2 = { x: t.pos.x, y: 2 * wallY - t.pos.y };
           const denom = mirror.y - C.y;
@@ -137,7 +141,7 @@ export const brain: Brain = {
           const s = openness(t.pos);
           if (s > bestScore) {
             bestScore = s;
-            best = mirror;
+            best = { aim: mirror, targetId: t.id };
           }
         }
       }
@@ -161,13 +165,14 @@ export const brain: Brain = {
       return best;
     };
 
-    // Where to aim a pass: clear lane first, then a wall pass, then forced.
-    const passAim = (me: PlayerView): Vec2 | null => {
+    // Where to aim a pass (and who it's for): clear lane, then wall pass, then forced.
+    const passDecision = (me: PlayerView): { aim: Vec2; targetId: number } | null => {
       const clear = clearOpenTarget(me);
-      if (clear) return clear.pos;
+      if (clear) return { aim: clear.pos, targetId: clear.id };
       const wall = wallPassAim(me);
       if (wall) return wall;
-      return anyOpenTarget(me)?.pos ?? null;
+      const any = anyOpenTarget(me);
+      return any ? { aim: any.pos, targetId: any.id } : null;
     };
 
     // A spot far from the carrier with an open line to him (so we offer a pass
@@ -185,48 +190,72 @@ export const brain: Brain = {
       return fallback!;
     };
 
-    // Is a loose ball heading toward this player (on its path)?
-    const ballHeadingToward = (me: PlayerView): boolean => {
-      if (view.ball.ownerId !== null) return false;
-      const bv = view.ball.vel;
-      const speed = Math.hypot(bv.x, bv.y);
-      if (speed < 40) return false;
-      const rx = me.pos.x - view.ball.pos.x;
-      const ry = me.pos.y - view.ball.pos.y;
-      if (rx * bv.x + ry * bv.y <= 0) return false;
-      const perp = Math.abs(rx * bv.y - ry * bv.x) / speed;
-      return perp < RECEIVE_PATH;
-    };
-
     // --- on the ball ----------------------------------------------------
     if (carrier) {
-      const corner = closestCorner(carrier.pos);
-      // If a teammate is wide open right now, pass immediately. Otherwise pass
-      // once the 2s corner run is up, or right away if already near a corner.
-      const wide = wideOpenTarget(carrier);
-      const readyToPass = held >= CORNER_RUN_SEC || dist(carrier.pos, corner) < CORNER_CLOSE;
-      const aim = wide ? wide.pos : readyToPass ? passAim(carrier) : null;
-      intents[carrier.id] = aim
-        ? { kind: "pass", to: aim }
-        : { kind: "move", to: corner };
+      const inFinishZone = Math.abs(carrier.pos.x - view.targetGoalX) < FINISH_X_FRAC * W;
+      if (inFinishZone) {
+        // KILLER: in the final 20% by the enemy goal. If on a top/bottom edge,
+        // first centre into the middle band; once centred, blast it to the far
+        // corner at max (shot) speed.
+        const half = (CENTRAL_BAND_FRAC / 2) * H;
+        const inBand = carrier.pos.y >= H / 2 - half && carrier.pos.y <= H / 2 + half;
+        if (inBand) {
+          const goalHalf = view.field.goalHeight / 2;
+          const farY =
+            carrier.pos.y <= H / 2
+              ? H / 2 + goalHalf - POST_INSET // shooter high → aim low corner
+              : H / 2 - goalHalf + POST_INSET; // shooter low → aim high corner
+          intents[carrier.id] = { kind: "shoot", to: { x: view.targetGoalX, y: farY } };
+        } else {
+          intents[carrier.id] = { kind: "move", to: { x: carrier.pos.x, y: H / 2 } };
+        }
+      } else {
+        const corner = closestCorner(carrier.pos);
+        // If a teammate is wide open right now, pass immediately. Otherwise pass
+        // once the 2s corner run is up, or right away if already near a corner.
+        const wide = wideOpenTarget(carrier);
+        const readyToPass = held >= CORNER_RUN_SEC || dist(carrier.pos, corner) < CORNER_CLOSE;
+        const decision = wide
+          ? { aim: wide.pos, targetId: wide.id }
+          : readyToPass
+            ? passDecision(carrier)
+            : null;
+        if (decision) {
+          intents[carrier.id] = { kind: "pass", to: decision.aim };
+          lastPassTargetId = decision.targetId; // remember who the pass is for
+        } else {
+          intents[carrier.id] = { kind: "move", to: corner };
+        }
+      }
       // Teammates get an open line from the carrier at the most distance they can.
       view.teammates.forEach((me) => {
         if (me.id === carrier.id) return;
         intents[me.id] = { kind: "move", to: openFarFrom(me, carrier.pos) };
       });
+    } else if (view.ball.ownerId === null && lastOwnerWasTeammate) {
+      // OUR pass in flight: only the intended receiver goes for it; everyone
+      // else stays spread/open instead of all rushing the ball.
+      const receiver =
+        view.teammates.find((t) => t.id === lastPassTargetId) ??
+        view.teammates.reduce((a, b) =>
+          dist(a.pos, view.ball.pos) <= dist(b.pos, view.ball.pos) ? a : b,
+        );
+      view.teammates.forEach((me) => {
+        intents[me.id] =
+          me.id === receiver.id
+            ? { kind: "move", to: view.ball.pos }
+            : { kind: "move", to: openFarFrom(me, view.ball.pos) };
+      });
     } else {
-      // No possession: players 1 & 2 rush the ball. Players 3 & 4 hold near our
-      // goal, but break onto a pass heading their way.
+      // A loose ball to win, or the opponent has it: 1 & 2 rush, 3 & 4 hold goal.
       rushers.forEach((r) => {
         intents[r.id] = { kind: "move", to: view.ball.pos };
       });
       outlets.forEach((o, i) => {
-        intents[o.id] = ballHeadingToward(o)
-          ? { kind: "move", to: view.ball.pos }
-          : {
-              kind: "move",
-              to: { x: view.ownGoalX + view.attackDir * 40, y: H * (i === 0 ? 0.35 : 0.65) },
-            };
+        intents[o.id] = {
+          kind: "move",
+          to: { x: view.ownGoalX + view.attackDir * 40, y: H * (i === 0 ? 0.35 : 0.65) },
+        };
       });
     }
 
@@ -239,5 +268,7 @@ export const brain: Brain = {
 let trackedOwner: number | null = null;
 let possessionStartTick = 0;
 let lastTick = -1;
+let lastOwnerWasTeammate = false;
+let lastPassTargetId: number | null = null;
 
 export default brain;
