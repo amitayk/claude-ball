@@ -16,6 +16,7 @@ export const brain: Brain = {
     openMin: { default: 60, min: 20, max: 160, step: 5, label: "Open space needed" },
     evadeRange: { default: 220, min: 60, max: 400, step: 10, label: "Evade range" },
     supportRadius: { default: 190, min: 80, max: 350, step: 10, label: "Support distance" },
+    receivePath: { default: 130, min: 40, max: 300, step: 10, label: "Receive path width" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const LANE_CLEARANCE = p.laneClearance!;
@@ -23,6 +24,7 @@ export const brain: Brain = {
     const OPEN_MIN = p.openMin!;
     const EVADE_RANGE = p.evadeRange!;
     const SUPPORT_RADIUS = p.supportRadius!;
+    const RECEIVE_PATH = p.receivePath!;
 
     const intents: TeamIntent = {};
     const W = view.field.width;
@@ -65,6 +67,19 @@ export const brain: Brain = {
         }
       }
       return best;
+    };
+
+    // Is a loose ball in flight heading toward this player (on its path)?
+    const ballHeadingToward = (me: PlayerView): boolean => {
+      if (view.ball.ownerId !== null) return false; // only loose balls
+      const bv = view.ball.vel;
+      const speed = Math.hypot(bv.x, bv.y);
+      if (speed < 40) return false;
+      const rx = me.pos.x - view.ball.pos.x;
+      const ry = me.pos.y - view.ball.pos.y;
+      if (rx * bv.x + ry * bv.y <= 0) return false; // ball moving away from me
+      const perp = Math.abs(rx * bv.y - ry * bv.x) / speed;
+      return perp < RECEIVE_PATH;
     };
 
     // Most-open teammate with a clean lane (a safe pass), or null.
@@ -138,15 +153,19 @@ export const brain: Brain = {
       intents[carrier.id] = tgt ? { kind: "pass", to: tgt.pos } : dribbleAway(carrier);
       supportSpread(view.teammates.filter((t) => t.id !== carrier.id));
     } else {
-      // No possession — phase 1: players 1 & 2 rush, 3 & 4 drop to our goal.
+      // No possession (phase 1): players 1 & 2 rush the ball. Players 3 & 4 hold
+      // near our goal — but an outlet the ball is heading toward runs onto it to
+      // receive a pass instead of sitting at home.
       rushers.forEach((r) => {
         intents[r.id] = { kind: "move", to: view.ball.pos };
       });
       outlets.forEach((o, i) => {
-        intents[o.id] = {
-          kind: "move",
-          to: { x: view.ownGoalX + view.attackDir * 40, y: H * (i === 0 ? 0.35 : 0.65) },
-        };
+        intents[o.id] = ballHeadingToward(o)
+          ? { kind: "move", to: view.ball.pos }
+          : {
+              kind: "move",
+              to: { x: view.ownGoalX + view.attackDir * 40, y: H * (i === 0 ? 0.35 : 0.65) },
+            };
       });
     }
 
