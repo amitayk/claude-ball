@@ -15,10 +15,10 @@ import { dist } from "@kr/brain-api";
 export const blitz: Brain = {
   name: "blitz",
   params: {
-    shootDistFrac: { default: 0.45, min: 0.1, max: 0.7, step: 0.01, label: "Shoot distance (×width)", help: "Shoot once the carrier is this fraction of the pitch width from goal." },
-    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "How close an opponent must be to a pass line for it to count as blocked." },
-    keeperStandoff: { default: 300, min: 0, max: 400, step: 5, label: "Keeper standoff", help: "How far up the shot line from our goal the keeper holds." },
-    strikerGap: { default: 200, min: 50, max: 400, step: 5, label: "Striker gap from goal", help: "How far in front of the enemy goal the lone striker waits." },
+    shootDistFrac: { default: 0.45, min: 0.1, max: 0.7, step: 0.01, label: "Shoot distance (×width)", help: "Distance from goal (×pitch width) at which it shoots. Higher = shoots from farther out." },
+    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "Clearance a pass lane needs from opponents. Higher = lanes count as blocked more easily, so it passes more cautiously." },
+    keeperStandoff: { default: 300, min: 0, max: 400, step: 5, label: "Keeper standoff", help: "How far up the shot line the keeper holds. Higher = keeper steps farther from our goal." },
+    strikerGap: { default: 200, min: 50, max: 400, step: 5, label: "Striker gap from goal", help: "How far in front of the enemy goal the striker waits. Higher = striker holds farther from goal." },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const SHOOT_DIST_FRAC = p.shootDistFrac!;

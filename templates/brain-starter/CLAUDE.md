@@ -128,16 +128,24 @@ params: {
   pressDistance: {
     default: 70, min: 0, max: 200, step: 5,
     label: "Press distance",
-    help: "An opponent within this distance counts as pressuring the ball.", // REQUIRED
+    // REQUIRED: say what it is AND what raising it does.
+    help: "Distance at which an opponent counts as pressuring the ball. Higher = feels pressured from farther away, so it plays safe sooner.",
   },
 }
 ```
 
-`help` is **required** on every param (the type enforces it): one short sentence
-explaining what the knob does, shown under its slider so the coach knows what
-they're turning. Resolved values arrive as `decide`'s second argument. Defaults
-live in code; the coach's saved values live in `src/brain.params.json`
-(committed).
+`help` is **required** on every param (the type enforces it). It must do two
+things: (1) briefly say what the knob is, and (2) state the **direction of
+effect** — what turning it **up** does — because a bare definition doesn't tell
+the coach which way to turn it. Always include a "Higher = …" (or "Increase
+to …") clause in plain gameplay terms. Examples:
+
+- ✅ "Clearance a pass lane needs. Higher = lanes are blocked more easily, so it passes more cautiously."
+- ❌ "How close an opponent must be to a pass line for it to count as blocked." (no direction — the coach can't tell which way to turn it)
+
+The help shows under the slider. Resolved values arrive as `decide`'s second
+argument. Defaults live in code; the coach's saved values live in
+`src/brain.params.json` (committed).
 
 ## Correctness rules (mechanical — always apply)
 

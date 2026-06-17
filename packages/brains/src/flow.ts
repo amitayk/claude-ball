@@ -16,15 +16,15 @@ import { dist } from "@kr/brain-api";
 export const flow: Brain = {
   name: "flow",
   params: {
-    shootDistFrac: { default: 0.35, min: 0.1, max: 0.6, step: 0.01, label: "Shoot distance (×width)", help: "Shoot once the carrier is this fraction of the pitch width from goal." },
-    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "How close an opponent must be to a pass line for it to count as blocked." },
-    laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than", help: "Opponents this close to the passer are ignored when checking lanes." },
-    keeperStandoff: { default: 60, min: 0, max: 300, step: 5, label: "Keeper standoff", help: "How far in front of our goal the keeper sits." },
-    enemyCloseDist: { default: 70, min: 0, max: 200, step: 5, label: "Pressure radius", help: "An opponent within this distance counts as pressuring the ball." },
-    playmakerDrop: { default: 90, min: 0, max: 300, step: 5, label: "Playmaker drop", help: "How far behind the ball the deep playmaker offers an outlet." },
-    forwardPush: { default: 150, min: 0, max: 500, step: 10, label: "Forward push", help: "How far ahead of the ball the forwards make their runs." },
-    channelLeftY: { default: 0.28, min: 0.05, max: 0.5, step: 0.02, label: "Left channel", help: "Vertical lane (fraction of height) the left forward runs." },
-    channelRightY: { default: 0.72, min: 0.5, max: 0.95, step: 0.02, label: "Right channel", help: "Vertical lane (fraction of height) the right forward runs." },
+    shootDistFrac: { default: 0.35, min: 0.1, max: 0.6, step: 0.01, label: "Shoot distance (×width)", help: "Distance from goal (×pitch width) at which it shoots. Higher = shoots from farther out." },
+    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "Clearance a pass lane needs from opponents. Higher = lanes count as blocked more easily, so it passes more cautiously." },
+    laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than", help: "Opponents this close to the passer are ignored when judging lanes. Higher = attempts passes through more nearby pressure." },
+    keeperStandoff: { default: 60, min: 0, max: 300, step: 5, label: "Keeper standoff", help: "How far in front of our goal the keeper sits. Higher = keeper plays farther off its line." },
+    enemyCloseDist: { default: 70, min: 0, max: 200, step: 5, label: "Pressure radius", help: "Distance at which an opponent counts as pressuring. Higher = feels pressured from farther away, so it plays safe sooner." },
+    playmakerDrop: { default: 90, min: 0, max: 300, step: 5, label: "Playmaker drop", help: "How far behind the ball the playmaker drops. Higher = offers a deeper, safer outlet." },
+    forwardPush: { default: 150, min: 0, max: 500, step: 10, label: "Forward push", help: "How far ahead of the ball the forwards run. Higher = pushes the forwards higher up the pitch." },
+    channelLeftY: { default: 0.28, min: 0.05, max: 0.5, step: 0.02, label: "Left channel", help: "Vertical lane for the left forward (fraction of height). Higher = positions the left forward lower." },
+    channelRightY: { default: 0.72, min: 0.5, max: 0.95, step: 0.02, label: "Right channel", help: "Vertical lane for the right forward (fraction of height). Higher = positions the right forward lower." },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const SHOOT_DIST_FRAC = p.shootDistFrac!;

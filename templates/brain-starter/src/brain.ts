@@ -15,17 +15,17 @@ import { dist } from "@kr/brain-api";
 export const brain: Brain = {
   name: "possession",
   params: {
-    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "How close an opponent must be to a pass line for it to count as blocked." },
-    laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than", help: "Opponents this close to the passer are ignored when checking lanes." },
-    cornerRunSec: { default: 2.0, min: 0, max: 5, step: 0.1, label: "Corner run time (s)", help: "Seconds the carrier dribbles toward a corner before it looks to pass." },
-    cornerInset: { default: 40, min: 10, max: 150, step: 5, label: "Corner inset", help: "How far inside each corner the dribble target sits." },
-    cornerCloseDist: { default: 120, min: 20, max: 400, step: 10, label: "Near-corner = pass now", help: "If the carrier is this close to its corner, pass immediately." },
-    wideOpenDist: { default: 150, min: 60, max: 400, step: 10, label: "Wide-open radius", help: "A teammate with no opponent within this radius counts as wide open." },
-    wideOpenMinDist: { default: 150, min: 0, max: 500, step: 10, label: "Wide-open min pass length", help: "Don't pass to a wide-open teammate closer than this." },
-    finishXFrac: { default: 0.2, min: 0.05, max: 0.5, step: 0.01, label: "Finish zone (×width)", help: "Width fraction by the enemy goal that counts as the finishing zone." },
-    centralBandFrac: { default: 0.6, min: 0.2, max: 1, step: 0.05, label: "Central band (Y)", help: "Vertical band (fraction of height) the carrier centres into before shooting." },
-    defStandoff: { default: 120, min: 20, max: 400, step: 10, label: "Blocker standoff from goal", help: "How far in front of our goal the deepest defender holds." },
-    shotCornerFrac: { default: 0.8, min: 0, max: 1, step: 0.05, label: "Shot corner (×goal half)", help: "How far toward the post (fraction of the goal half) shots aim." },
+    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "Clearance a pass lane needs from opponents. Higher = lanes count as blocked more easily, so it passes more cautiously." },
+    laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than", help: "Opponents this close to the passer are ignored when judging lanes. Higher = attempts passes through more nearby pressure." },
+    cornerRunSec: { default: 2.0, min: 0, max: 5, step: 0.1, label: "Corner run time (s)", help: "Seconds the carrier dribbles toward a corner before passing. Higher = holds the ball longer before releasing." },
+    cornerInset: { default: 40, min: 10, max: 150, step: 5, label: "Corner inset", help: "How far inside each corner the dribble target sits. Higher = keeps the run farther from the corner." },
+    cornerCloseDist: { default: 120, min: 20, max: 400, step: 10, label: "Near-corner = pass now", help: "Distance to its corner at which it passes immediately. Higher = passes sooner instead of running to the corner." },
+    wideOpenDist: { default: 150, min: 60, max: 400, step: 10, label: "Wide-open radius", help: "Space a teammate needs to count as wide open. Higher = demands more space before making the early pass." },
+    wideOpenMinDist: { default: 150, min: 0, max: 500, step: 10, label: "Wide-open min pass length", help: "Shortest allowed wide-open pass. Higher = only plays longer wide-open passes." },
+    finishXFrac: { default: 0.2, min: 0.05, max: 0.5, step: 0.01, label: "Finish zone (×width)", help: "Width fraction by the enemy goal that counts as the finishing zone. Higher = starts shooting from farther out." },
+    centralBandFrac: { default: 0.6, min: 0.2, max: 1, step: 0.05, label: "Central band (Y)", help: "Vertical band the carrier centres into before shooting. Higher = will shoot from wider angles (centres less)." },
+    defStandoff: { default: 120, min: 20, max: 400, step: 10, label: "Blocker standoff from goal", help: "How far in front of our goal the deepest defender holds. Higher = defends farther up the pitch." },
+    shotCornerFrac: { default: 0.8, min: 0, max: 1, step: 0.05, label: "Shot corner (×goal half)", help: "How far toward the post shots aim. Higher = aims closer to the post (more corner, riskier)." },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const LANE_CLEARANCE = p.laneClearance!;
