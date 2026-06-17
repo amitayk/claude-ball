@@ -21,6 +21,7 @@ export const brain: Brain = {
     cornerInset: { default: 40, min: 10, max: 150, step: 5, label: "Corner inset" },
     cornerCloseDist: { default: 120, min: 20, max: 400, step: 10, label: "Near-corner = pass now" },
     wideOpenDist: { default: 150, min: 60, max: 400, step: 10, label: "Wide-open radius" },
+    wideOpenMinDist: { default: 150, min: 0, max: 500, step: 10, label: "Wide-open min pass length" },
     receivePath: { default: 130, min: 40, max: 300, step: 10, label: "Receive path width" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
@@ -30,6 +31,7 @@ export const brain: Brain = {
     const CORNER_INSET = p.cornerInset!;
     const CORNER_CLOSE = p.cornerCloseDist!;
     const WIDE_OPEN_DIST = p.wideOpenDist!;
+    const WIDE_OPEN_MIN = p.wideOpenMinDist!;
     const RECEIVE_PATH = p.receivePath!;
 
     const intents: TeamIntent = {};
@@ -148,6 +150,7 @@ export const brain: Brain = {
       let bestScore = WIDE_OPEN_DIST; // must be at least this open
       for (const t of view.teammates) {
         if (t.id === me.id) continue;
+        if (dist(me.pos, t.pos) < WIDE_OPEN_MIN) continue; // too close — don't bother
         if (laneBlocked(me.pos, t.pos)) continue;
         const s = openness(t.pos);
         if (s >= bestScore) {
