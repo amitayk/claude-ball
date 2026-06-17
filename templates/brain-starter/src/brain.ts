@@ -20,6 +20,7 @@ export const brain: Brain = {
     cornerRunSec: { default: 2.0, min: 0, max: 5, step: 0.1, label: "Corner run time (s)" },
     cornerInset: { default: 40, min: 10, max: 150, step: 5, label: "Corner inset" },
     cornerCloseDist: { default: 120, min: 20, max: 400, step: 10, label: "Near-corner = pass now" },
+    wideOpenDist: { default: 150, min: 60, max: 400, step: 10, label: "Wide-open radius" },
     receivePath: { default: 130, min: 40, max: 300, step: 10, label: "Receive path width" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
@@ -28,6 +29,7 @@ export const brain: Brain = {
     const CORNER_RUN_SEC = p.cornerRunSec!;
     const CORNER_INSET = p.cornerInset!;
     const CORNER_CLOSE = p.cornerCloseDist!;
+    const WIDE_OPEN_DIST = p.wideOpenDist!;
     const RECEIVE_PATH = p.receivePath!;
 
     const intents: TeamIntent = {};
@@ -140,6 +142,22 @@ export const brain: Brain = {
       return best;
     };
 
+    // A "wide open" teammate: no opponent anywhere near him AND a clear lane.
+    const wideOpenTarget = (me: PlayerView): PlayerView | null => {
+      let best: PlayerView | null = null;
+      let bestScore = WIDE_OPEN_DIST; // must be at least this open
+      for (const t of view.teammates) {
+        if (t.id === me.id) continue;
+        if (laneBlocked(me.pos, t.pos)) continue;
+        const s = openness(t.pos);
+        if (s >= bestScore) {
+          bestScore = s;
+          best = t;
+        }
+      }
+      return best;
+    };
+
     // Where to aim a pass: clear lane first, then a wall pass, then forced.
     const passAim = (me: PlayerView): Vec2 | null => {
       const clear = clearOpenTarget(me);
@@ -180,9 +198,11 @@ export const brain: Brain = {
     // --- on the ball ----------------------------------------------------
     if (carrier) {
       const corner = closestCorner(carrier.pos);
-      // Pass once the 2s run is up, OR right away if already near a corner.
+      // If a teammate is wide open right now, pass immediately. Otherwise pass
+      // once the 2s corner run is up, or right away if already near a corner.
+      const wide = wideOpenTarget(carrier);
       const readyToPass = held >= CORNER_RUN_SEC || dist(carrier.pos, corner) < CORNER_CLOSE;
-      const aim = readyToPass ? passAim(carrier) : null;
+      const aim = wide ? wide.pos : readyToPass ? passAim(carrier) : null;
       intents[carrier.id] = aim
         ? { kind: "pass", to: aim }
         : { kind: "move", to: corner };
