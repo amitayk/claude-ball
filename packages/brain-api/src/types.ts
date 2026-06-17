@@ -71,9 +71,14 @@ export type Intent =
   | { kind: "move"; to: Vec2 }
   /** Move in a direction (vector need not be normalized). */
   | { kind: "moveDir"; dir: Vec2 }
-  /** Kick the ball toward a point at pass speed. Ignored if not in control. */
-  | { kind: "pass"; to: Vec2 }
-  /** Kick the ball toward a point at shot speed. Ignored if not in control. */
+  /**
+   * Pass the ball toward `to`. By default it is weighted to come to REST at
+   * `to` (so a longer pass is struck harder) — aim where you want the ball to
+   * end up. Set `range` to override how far it travels (in field units) when you
+   * want to drive it past the target or play it short. Ignored if not in control.
+   */
+  | { kind: "pass"; to: Vec2; range?: number }
+  /** Strike the ball toward a point at full pace (for shooting). Ignored if not in control. */
   | { kind: "shoot"; to: Vec2 };
 
 /** Map of playerId -> Intent for the players this brain controls. */

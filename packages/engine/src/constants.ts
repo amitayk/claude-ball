@@ -39,9 +39,14 @@ export const RULES = {
      * a 340 pass ≈ 290u, a 560 shot ≈ 780u on the 1050-wide pitch.
      */
     deceleration: 200,
-    /** Speed imparted by a pass / a shot. */
-    passSpeed: 340,
-    shootSpeed: 560,
+    /**
+     * Kick speeds. A pass is weighted to arrive at its target (speed derived
+     * from the travel distance via the deceleration above), clamped to this
+     * range. A shot is always struck at maxKickSpeed for pace. With decel 200,
+     * maxKickSpeed 560 lets a kick travel up to ~780 units.
+     */
+    minKickSpeed: 80,
+    maxKickSpeed: 560,
   },
 
   /** A player controls the ball when within this distance of it. */

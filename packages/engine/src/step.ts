@@ -110,11 +110,27 @@ function applyMovement(p: PlayerState, intent: Intent | undefined): void {
   p.vel = clampLen({ x: desired.x * RULES.player.maxSpeed, y: desired.y * RULES.player.maxSpeed }, RULES.player.maxSpeed);
 }
 
+/** Speed needed for a freely-rolling ball to travel `dist` before stopping. */
+function speedForDistance(dist: number): number {
+  return Math.sqrt(2 * RULES.ball.deceleration * Math.max(0, dist));
+}
+
 function tryKick(world: WorldState, p: PlayerState, intent: Intent | undefined): boolean {
   if (!intent || (intent.kind !== "pass" && intent.kind !== "shoot")) return false;
   if (world.ball.ownerId !== p.id || p.kickCooldown > 0) return false;
-  const speed = intent.kind === "shoot" ? RULES.ball.shootSpeed : RULES.ball.passSpeed;
   const d = dirTo(world.ball.pos, intent.to);
+  if (d.x === 0 && d.y === 0) return false; // kicking at our own position: no-op
+
+  let speed: number;
+  if (intent.kind === "shoot") {
+    // A shot is always struck for pace.
+    speed = RULES.ball.maxKickSpeed;
+  } else {
+    // A pass is weighted to come to rest at `to`, or to travel `range` if the
+    // brain overrode the distance. Clamp to the kick speed range.
+    const dist = intent.range ?? Math.hypot(intent.to.x - world.ball.pos.x, intent.to.y - world.ball.pos.y);
+    speed = Math.max(RULES.ball.minKickSpeed, Math.min(RULES.ball.maxKickSpeed, speedForDistance(dist)));
+  }
   world.ball.vel = { x: d.x * speed, y: d.y * speed };
   world.ball.ownerId = null;
   world.ball.lastTouchedBy = p.id;

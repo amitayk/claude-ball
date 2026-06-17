@@ -96,8 +96,8 @@ type Intent =
   | { kind: "idle" }
   | { kind: "move";    to: Vec2 }    // steer toward a point at full speed
   | { kind: "moveDir"; dir: Vec2 }   // steer in a direction
-  | { kind: "pass";    to: Vec2 }    // kick at pass speed (needs the ball)
-  | { kind: "shoot";   to: Vec2 };   // kick at shot speed (needs the ball)
+  | { kind: "pass";    to: Vec2; range?: number }  // weighted to stop at `to`; `range` overrides distance
+  | { kind: "shoot";   to: Vec2 };                 // struck at full pace (needs the ball)
 ```
 
 Key `WorldView` fields: `ball`, `teammates`, `opponents` (all read-only with
