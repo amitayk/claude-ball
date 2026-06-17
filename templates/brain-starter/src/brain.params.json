@@ -2,7 +2,7 @@
   "laneClearance": 67,
   "laneIgnoreNear": 0,
   "cornerRunSec": 1,
-  "cornerInset": 105,
+  "cornerInset": 150,
   "cornerCloseDist": 80,
   "wideOpenDist": 300,
   "wideOpenMinDist": 130,
