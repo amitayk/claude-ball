@@ -73,6 +73,67 @@ brain only observes (`WorldView`) and commands (`Intent`).
 Tunable values go in the brain's `params` block; the resolved values arrive as
 the second argument to `decide`. The coach turns them live in the control panel.
 
+## The API you code against
+
+```ts
+interface Brain {
+  name?: string;
+  params?: ParamsSpec;                                       // tunable knobs → sliders
+  decide(view: WorldView, params: ParamValues): TeamIntent;  // called once per tick
+}
+```
+
+`decide` returns one Intent per player you control, keyed by player id
+(`TeamIntent = Record<number, Intent>`).
+
+### Intents — what a player does this tick
+
+```ts
+{ kind: "idle" }
+{ kind: "move",    to:  Vec2 }              // run toward a point at full speed
+{ kind: "moveDir", dir: Vec2 }              // run in a direction (need not be unit length)
+{ kind: "pass",    to:  Vec2, range?: number }
+{ kind: "shoot",   to:  Vec2 }
+```
+
+- **pass**: the ball is weighted to come to **rest at `to`** — a longer pass is
+  struck harder automatically, so aim where you want the ball to end up. Set
+  `range` (field units) to override the travel distance (drive it *past* `to`,
+  or play it shorter).
+- **shoot**: struck at full pace toward `to` (overshooting the point is fine).
+- Kicks do something only when that player controls the ball (`hasBall` /
+  `ball.ownerId === player.id`), and a player can kick only once per short
+  cooldown.
+
+### What you can observe — `WorldView` (read-only)
+
+- `ball`: `{ pos, vel, ownerId }` (`ownerId` = controlling player's id, or `null`).
+- `teammates` / `opponents`: each `{ id, side, pos, vel, hasBall }`.
+- `field`: `{ width, height, goalHeight }`.
+- `attackDir`, `targetGoalX`, `ownGoalX` — orient by these (see below).
+- `score`, `tick`, `dt`.
+
+### Params
+
+```ts
+params: {
+  pressDistance: { default: 70, min: 0, max: 200, step: 5, label: "Press distance" },
+}
+```
+
+Resolved values arrive as `decide`'s second argument. Defaults live in code; the
+coach's saved values live in `src/brain.params.json` (committed).
+
+## Correctness rules (mechanical — always apply)
+
+- **Side-agnostic**: never hardcode left/right or `home`/`away` (see orientation
+  below).
+- **Deterministic**: never call `Math.random()` or read the clock — a match must
+  replay identically. Variety comes from the engine's seed, not the brain.
+- **Read-only**: never mutate `view`; `decide` must be a pure function of
+  `(view, params)`.
+- Return an Intent for every player you control, every tick.
+
 ## Pitch orientation & side-agnostic code
 
 - Origin `(0, 0)` is the **top-left** corner of the field.
@@ -97,5 +158,9 @@ npm run coach        # opens the live field, control panel, and versions at loca
 ```
 
 It hot-reloads: when you edit `src/brain.ts`, the match re-runs automatically —
-the coach does not run terminal commands to see changes. Read `README.md` for the
-full API reference.
+the coach does not run terminal commands to see changes. The control panel,
+opponent picker, seed (🎲 for a random game), and version history all live on
+that page.
+
+The API above is everything you need to write a brain. `README.md` covers the
+same ground with more prose if you want it.
