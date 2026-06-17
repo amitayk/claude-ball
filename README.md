@@ -108,7 +108,8 @@ Rules: 4 players per side, ~90s matches at 30 ticks/sec. A player controls the
 ball within `controlDistance`; kicks have a short cooldown. **Kickoff:** the
 conceding team (or a seed-chosen side to open) starts with the ball on the centre
 spot; the other team is held outside the centre circle until the ball is kicked,
-leaves the circle, or a few seconds pass. See
+leaves the circle, or a few seconds pass. The kicking team must play the ball
+**back** — a kick toward the enemy half is ignored. See
 [`packages/engine/src/constants.ts`](packages/engine/src/constants.ts).
 
 ### Rules for brains

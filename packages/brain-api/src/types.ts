@@ -63,6 +63,8 @@ export interface WorldView {
    * centre circle until they kick, the ball leaves the circle, or a few seconds
    * pass. "open" the rest of the time. Check
    * `phase === "kickoff" && kickoffSide === side` to know you're taking it.
+   * At kickoff you must play the ball BACK: a kick toward the enemy half
+   * (positive component along `attackDir`) is ignored.
    */
   readonly phase: Phase;
   readonly kickoffSide: Side;

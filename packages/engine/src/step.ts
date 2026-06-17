@@ -148,6 +148,14 @@ function tryKick(world: WorldState, p: PlayerState, intent: Intent | undefined):
   const d = dirTo(world.ball.pos, intent.to);
   if (d.x === 0 && d.y === 0) return false; // kicking at our own position: no-op
 
+  // Kickoff rule: the kicking team must play the ball back. A kick toward the
+  // enemy half is illegal during the kickoff phase and is ignored — the brain
+  // must aim backward (or sideways), and only a legal backward kick opens play.
+  if (world.phase === "kickoff") {
+    const attackDir = p.side === "home" ? 1 : -1;
+    if (d.x * attackDir > 0) return false;
+  }
+
   let speed: number;
   if (intent.kind === "shoot") {
     // A shot is always struck for pace.

@@ -116,7 +116,9 @@ interface Brain {
   is held outside the centre circle until it kicks, the ball leaves the circle,
   or ~3s pass. You're taking the kickoff when
   `phase === "kickoff" && kickoffSide === side`. After a goal, the team that
-  conceded takes the next kickoff.
+  conceded takes the next kickoff. **You must play the ball back at kickoff:** a
+  pass/shoot whose direction is toward the enemy half is ignored — aim backward
+  or sideways, and a legal backward kick opens play.
 - `score`, `tick`, `dt`.
 
 ### Params
