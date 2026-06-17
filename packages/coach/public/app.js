@@ -18,6 +18,8 @@ let paramValues = {};
 // annotate "(you)"; nothing about left/right/own-goal is tied to it, so a PvP
 // spectator (you = null) renders the same labels minus the marker.
 let youSide = null;
+// transient visual effects (collisions, pass/shoot flashes); aged in real time
+let effects = [];
 
 // ── commands ────────────────────────────────────────────────────────────────
 async function post(cmd) {
@@ -154,6 +156,7 @@ function applyReplay(payload) {
   $("score").textContent = `${replay.score.home} – ${replay.score.away}`;
   frameIdx = 0;
   playing = true;
+  effects = [];
   $("playpause").textContent = "⏸";
 }
 
@@ -252,6 +255,7 @@ function drawFrame(f) {
   }
   if (f.phase === "kickoff") drawKickoff(f);
   drawBall(f);
+  drawEffects();
 
   $("time").textContent = (f.t * meta.dt).toFixed(1) + "s";
   $("scrub").value = String(frameIdx);
@@ -323,6 +327,95 @@ function drawBall(f) {
   }
 }
 
+// ── effects ───────────────────────────────────────────────────────────────────
+const hexToRgba = (hex, a) => {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+};
+
+const COLLIDE_DIST = 26; // ~2 × player radius (+ a little)
+
+// Compare two adjacent frames and spawn effects for events that just happened.
+function detectEvents(prev, cur) {
+  // Kick: the ball goes from controlled to a pass/shot this tick.
+  if ((cur.ball.mode === "pass" || cur.ball.mode === "shot") && prev.ball.mode === "controlled") {
+    spawnEffect({
+      type: cur.ball.mode,
+      x: cur.ball.x,
+      y: cur.ball.y,
+      color: cur.ball.side ? COLORS[cur.ball.side] : "#ffffff",
+    });
+  }
+  // Collision: opposing players that just came into contact.
+  for (const a of cur.players) {
+    for (const b of cur.players) {
+      if (a.side === b.side || a.id >= b.id) continue;
+      if (Math.hypot(a.x - b.x, a.y - b.y) >= COLLIDE_DIST) continue;
+      const pa = prev.players.find((p) => p.id === a.id);
+      const pb = prev.players.find((p) => p.id === b.id);
+      const wasApart = !pa || !pb || Math.hypot(pa.x - pb.x, pa.y - pb.y) >= COLLIDE_DIST;
+      if (wasApart) spawnEffect({ type: "collision", x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, color: "#ffe08a" });
+    }
+  }
+}
+
+function spawnEffect(e) {
+  const life = e.type === "shot" ? 480 : e.type === "pass" ? 340 : 260;
+  effects.push({ ...e, age: 0, life });
+  if (effects.length > 80) effects.shift();
+}
+
+function ageEffects(dtRealMs) {
+  for (const e of effects) e.age += dtRealMs;
+  effects = effects.filter((e) => e.age < e.life);
+}
+
+function drawEffects() {
+  for (const e of effects) {
+    const t = e.age / e.life; // 0 → 1
+    const fade = 1 - t;
+    if (e.type === "collision") {
+      // a small, quick spark burst at the point of contact
+      const r = 4 + t * 16;
+      ctx.save();
+      ctx.globalAlpha = fade * 0.9;
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+      for (let i = 0; i < 5; i++) {
+        const ang = (i / 5) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(e.x + Math.cos(ang) * (r * 0.6), e.y + Math.sin(ang) * (r * 0.6));
+        ctx.lineTo(e.x + Math.cos(ang) * (r + 3), e.y + Math.sin(ang) * (r + 3));
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else {
+      // pass/shoot: a glow + an expanding light ring (shots are bigger/brighter)
+      const shot = e.type === "shot";
+      const maxR = shot ? 56 : 30;
+      const r = 8 + t * maxR;
+      ctx.save();
+      const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r);
+      grad.addColorStop(0, hexToRgba(e.color, fade * (shot ? 0.55 : 0.34)));
+      grad.addColorStop(1, hexToRgba(e.color, 0));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = fade * (shot ? 0.95 : 0.6);
+      ctx.strokeStyle = e.color;
+      ctx.lineWidth = shot ? 4 : 2.5;
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+}
+
 function updatePossession(f) {
   const poss = $("possession");
   const ball = f.ball;
@@ -344,11 +437,14 @@ function updatePossession(f) {
 function loop(now) {
   const dtReal = (now - last) / 1000;
   last = now;
+  ageEffects(dtReal * 1000);
   if (playing && replay) {
     acc += dtReal * Number($("speed").value);
     while (acc >= meta.dt) {
       acc -= meta.dt;
-      frameIdx = Math.min(frameIdx + 1, replay.frames.length - 1);
+      const next = Math.min(frameIdx + 1, replay.frames.length - 1);
+      if (next !== frameIdx) detectEvents(replay.frames[frameIdx], replay.frames[next]);
+      frameIdx = next;
       if (frameIdx >= replay.frames.length - 1) playing = false, ($("playpause").textContent = "▶");
     }
   }
