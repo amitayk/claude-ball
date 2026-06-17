@@ -1,0 +1,11 @@
+{
+  "shootDistFrac": 0.54,
+  "laneClearance": 36,
+  "laneIgnoreNear": 35,
+  "keeperStandoff": 60,
+  "enemyCloseDist": 70,
+  "playmakerDrop": 90,
+  "forwardPush": 150,
+  "channelLeftY": 0.28,
+  "channelRightY": 0.72
+}
