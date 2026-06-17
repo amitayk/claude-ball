@@ -149,12 +149,12 @@ function speedForDistance(dist: number): number {
   return Math.sqrt(2 * RULES.ball.deceleration * Math.max(0, dist));
 }
 
-function tryKick(world: WorldState, p: PlayerState, intent: Intent | undefined): boolean {
+function tryKick(world: WorldState, p: PlayerState, intent: Intent | undefined, rng: Rng): boolean {
   if (!intent || (intent.kind !== "pass" && intent.kind !== "shoot")) return false;
   if (world.ball.ownerId !== p.id || p.kickCooldown > 0) return false;
   if (!isVec(intent.to)) return false; // garbage target: ignore the kick
   if (intent.kind === "pass" && intent.range !== undefined && !isNum(intent.range)) return false;
-  const d = dirTo(world.ball.pos, intent.to);
+  let d = dirTo(world.ball.pos, intent.to);
   if (d.x === 0 && d.y === 0) return false; // kicking at our own position: no-op
 
   // Kickoff rule: the kicking team must play the ball back. A kick toward the
@@ -175,6 +175,16 @@ function tryKick(world: WorldState, p: PlayerState, intent: Intent | undefined):
     const dist = intent.range ?? Math.hypot(intent.to.x - world.ball.pos.x, intent.to.y - world.ball.pos.y);
     speed = Math.max(RULES.ball.minKickSpeed, Math.min(RULES.ball.maxKickSpeed, speedForDistance(dist)));
   }
+
+  // Inaccuracy: rotate the kick by a random angle scaled by how hard it's hit.
+  const spread = RULES.ball.maxKickInaccuracy * (speed / RULES.ball.maxKickSpeed);
+  if (spread > 0) {
+    const a = rng.range(-spread, spread);
+    const cos = Math.cos(a);
+    const sin = Math.sin(a);
+    d = { x: d.x * cos - d.y * sin, y: d.x * sin + d.y * cos };
+  }
+
   world.ball.vel = { x: d.x * speed, y: d.y * speed };
   world.ball.ownerId = null;
   world.ball.lastTouchedBy = p.id;
@@ -286,7 +296,7 @@ export function step(
     const intents = p.side === "home" ? homeIntents : awayIntents;
     const intent = intents[p.id];
     applyMovement(p, intent);
-    const kicked = tryKick(world, p, intent);
+    const kicked = tryKick(world, p, intent, rng);
     if (kicked && p.side === world.kickoffSide) kickingSideKicked = true;
   }
 

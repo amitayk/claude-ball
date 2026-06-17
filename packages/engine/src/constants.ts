@@ -83,6 +83,14 @@ export const RULES = deepFreeze({
      */
     minKickSpeed: 80,
     maxKickSpeed: 560,
+    /**
+     * Kick scatter: the executed direction is randomly perturbed by up to this
+     * many radians (±), scaled by how hard the ball was struck
+     * (speed / maxKickSpeed). So a gentle weighted pass is near-perfect while a
+     * full-pace shot or long ball sprays — harder is less accurate. 0 disables.
+     * 0.08 rad ≈ 4.6° at max power (~60u sideways over a full-pitch kick).
+     */
+    maxKickInaccuracy: 0.08,
   },
 
   /** A player controls the ball when within this distance of it. */
