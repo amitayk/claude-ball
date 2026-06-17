@@ -255,7 +255,7 @@ function drawFrame(f) {
   }
   if (f.phase === "kickoff") drawKickoff(f);
   drawBall(f);
-  drawEffects();
+  drawEffects(f);
 
   $("time").textContent = (f.t * meta.dt).toFixed(1) + "s";
   $("scrub").value = String(frameIdx);
@@ -328,25 +328,26 @@ function drawBall(f) {
 }
 
 // ── effects ───────────────────────────────────────────────────────────────────
-const hexToRgba = (hex, a) => {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-};
-
 const COLLIDE_DIST = 26; // ~2 × player radius (+ a little)
 
+const PLAYER_R = 12;
+
 // Compare two adjacent frames and spawn effects for events that just happened.
+// Effects are anchored to a player (by id) so they pulse softly around that
+// player's circle and follow it.
 function detectEvents(prev, cur) {
-  // Kick: the ball goes from controlled to a pass/shot this tick.
+  // Kick: the ball goes from controlled to a pass/shot this tick. The kicker is
+  // whoever controlled the ball on the previous frame.
   if ((cur.ball.mode === "pass" || cur.ball.mode === "shot") && prev.ball.mode === "controlled") {
+    const kicker = prev.players.find((p) => p.ball);
     spawnEffect({
       type: cur.ball.mode,
-      x: cur.ball.x,
-      y: cur.ball.y,
+      playerId: kicker ? kicker.id : null,
       color: cur.ball.side ? COLORS[cur.ball.side] : "#ffffff",
     });
   }
-  // Collision: opposing players that just came into contact.
+  // Collision: opposing players that just came into contact — a soft pulse
+  // around each player, in its own team colour.
   for (const a of cur.players) {
     for (const b of cur.players) {
       if (a.side === b.side || a.id >= b.id) continue;
@@ -354,13 +355,16 @@ function detectEvents(prev, cur) {
       const pa = prev.players.find((p) => p.id === a.id);
       const pb = prev.players.find((p) => p.id === b.id);
       const wasApart = !pa || !pb || Math.hypot(pa.x - pb.x, pa.y - pb.y) >= COLLIDE_DIST;
-      if (wasApart) spawnEffect({ type: "collision", x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, color: "#ffe08a" });
+      if (wasApart) {
+        spawnEffect({ type: "collision", playerId: a.id, color: COLORS[a.side] });
+        spawnEffect({ type: "collision", playerId: b.id, color: COLORS[b.side] });
+      }
     }
   }
 }
 
 function spawnEffect(e) {
-  const life = e.type === "shot" ? 480 : e.type === "pass" ? 340 : 260;
+  const life = e.type === "shot" ? 460 : e.type === "pass" ? 340 : 260;
   effects.push({ ...e, age: 0, life });
   if (effects.length > 80) effects.shift();
 }
@@ -370,49 +374,30 @@ function ageEffects(dtRealMs) {
   effects = effects.filter((e) => e.age < e.life);
 }
 
-function drawEffects() {
+// Soft halo around a player's circle: a glowing ring that grows a little and
+// fades. Shots glow hardest, passes softer, collisions softest/smallest.
+function drawEffects(frame) {
   for (const e of effects) {
+    const p = e.playerId != null ? frame.players.find((pl) => pl.id === e.playerId) : null;
+    if (!p) continue;
     const t = e.age / e.life; // 0 → 1
     const fade = 1 - t;
-    if (e.type === "collision") {
-      // a small, quick spark burst at the point of contact
-      const r = 4 + t * 16;
-      ctx.save();
-      ctx.globalAlpha = fade * 0.9;
-      ctx.strokeStyle = e.color;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
-      ctx.stroke();
-      for (let i = 0; i < 5; i++) {
-        const ang = (i / 5) * Math.PI * 2;
-        ctx.beginPath();
-        ctx.moveTo(e.x + Math.cos(ang) * (r * 0.6), e.y + Math.sin(ang) * (r * 0.6));
-        ctx.lineTo(e.x + Math.cos(ang) * (r + 3), e.y + Math.sin(ang) * (r + 3));
-        ctx.stroke();
-      }
-      ctx.restore();
-    } else {
-      // pass/shoot: a glow + an expanding light ring (shots are bigger/brighter)
-      const shot = e.type === "shot";
-      const maxR = shot ? 56 : 30;
-      const r = 8 + t * maxR;
-      ctx.save();
-      const grad = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, r);
-      grad.addColorStop(0, hexToRgba(e.color, fade * (shot ? 0.55 : 0.34)));
-      grad.addColorStop(1, hexToRgba(e.color, 0));
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = fade * (shot ? 0.95 : 0.6);
-      ctx.strokeStyle = e.color;
-      ctx.lineWidth = shot ? 4 : 2.5;
-      ctx.beginPath();
-      ctx.arc(e.x, e.y, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
+    const shot = e.type === "shot";
+    const collision = e.type === "collision";
+    const grow = shot ? 16 : collision ? 6 : 11; // how far past the circle it swells
+    const r = PLAYER_R + 2 + t * grow;
+    const alpha = fade * (shot ? 0.6 : collision ? 0.4 : 0.45);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = e.color;
+    ctx.lineWidth = shot ? 3 : 2;
+    ctx.shadowColor = e.color; // the soft glow
+    ctx.shadowBlur = shot ? 16 : collision ? 7 : 11;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
