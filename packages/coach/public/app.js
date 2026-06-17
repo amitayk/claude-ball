@@ -191,6 +191,38 @@ function drawPitch() {
   ctx.moveTo(4, top); ctx.lineTo(4, top + goalHeight);
   ctx.moveTo(W - 4, top); ctx.lineTo(W - 4, top + goalHeight);
   ctx.stroke();
+
+  drawLabels(W, H, goalHeight);
+}
+
+// Direction labels: which way is your goal vs the enemy goal, and what the
+// axes mean. You (blue/home) always defend the LEFT goal and attack RIGHT.
+function drawLabels(W, H, goalHeight) {
+  const gTop = (H - goalHeight) / 2;
+  ctx.save();
+  // goal-ownership tints
+  ctx.globalAlpha = 0.16;
+  ctx.fillStyle = COLORS.home; ctx.fillRect(4, gTop, 22, goalHeight);
+  ctx.fillStyle = COLORS.away; ctx.fillRect(W - 26, gTop, 22, goalHeight);
+  ctx.globalAlpha = 1;
+
+  ctx.textBaseline = "top";
+  ctx.font = "bold 15px ui-monospace, monospace";
+  ctx.fillStyle = COLORS.home; ctx.textAlign = "left";
+  ctx.fillText("◀ YOUR GOAL · defend", 34, 26);
+  ctx.fillStyle = COLORS.away; ctx.textAlign = "right";
+  ctx.fillText("attack · ENEMY GOAL ▶", W - 16, 26);
+
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.font = "12px ui-monospace, monospace";
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText("TOP (y = 0)", W / 2, 26);
+  ctx.textBaseline = "bottom";
+  ctx.fillText("BOTTOM (y = " + H + ")   ·   x → right   ·   y ↓ down", W / 2, H - 10);
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left"; ctx.fillText("LEFT (x = 0)", 30, H / 2);
+  ctx.textAlign = "right"; ctx.fillText("RIGHT (x = " + W + ")", W - 30, H / 2);
+  ctx.restore();
 }
 
 function drawFrame(f) {

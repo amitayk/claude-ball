@@ -31,6 +31,15 @@ export interface FieldInfo {
 /**
  * Everything a brain can observe on a given tick. Fully read-only:
  * the engine owns all state; a brain may only return Intents.
+ *
+ * Pitch orientation (all positions are in field units):
+ *   - Origin (0,0) is the TOP-LEFT corner.
+ *   - x increases to the RIGHT (0 → field.width); y increases DOWNWARD
+ *     (0 → field.height). So "up" on screen = smaller y, "down" = larger y.
+ *   - You attack toward `targetGoalX` and defend `ownGoalX`. `attackDir` is +1
+ *     if you attack toward larger x (rightward) and -1 otherwise.
+ *   - Don't hardcode left/right: a brain plays either side, so steer by
+ *     `attackDir` / `targetGoalX` / `ownGoalX`, never by a literal x value.
  */
 export interface WorldView {
   readonly tick: number;

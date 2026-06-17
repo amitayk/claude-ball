@@ -63,6 +63,18 @@ brain only observes (`WorldView`) and commands (`Intent`).
 Tunable values go in the brain's `params` block; the resolved values arrive as
 the second argument to `decide`. The coach turns them live in the control panel.
 
+## Pitch orientation (shared by you, the coach, and the field labels)
+
+- Origin `(0, 0)` is the **top-left** corner.
+- **x** increases to the **right** (`0 → field.width`). **y** increases
+  **downward** (`0 → field.height`). On screen: *up* = smaller y, *down* = larger y.
+- In the coach's view, the team you control is **blue** on the **left**: it
+  **defends the LEFT goal** (`ownGoalX`) and **attacks the RIGHT goal**
+  (`targetGoalX`). The opponent is orange on the right.
+- A brain may play either side, so **never hardcode left/right or a literal x**.
+  Steer by `attackDir` (+1 = attack toward larger x), `targetGoalX`, and
+  `ownGoalX`. This is a mechanical correctness rule, not a tactic.
+
 ## The coach's workbench
 
 The coach runs a single command and works entirely in the browser:
