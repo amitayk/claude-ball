@@ -1,6 +1,6 @@
 {
   "laneClearance": 67,
-  "laneIgnoreNear": 4,
+  "laneIgnoreNear": 0,
   "cornerRunSec": 1,
   "cornerInset": 105,
   "cornerCloseDist": 80,
@@ -8,6 +8,6 @@
   "wideOpenMinDist": 130,
   "finishXFrac": 0.45,
   "centralBandFrac": 0.7,
-  "defStandoff": 120,
-  "shotCornerFrac": 0.5
+  "defStandoff": 70,
+  "shotCornerFrac": 0.2
 }
