@@ -5,9 +5,17 @@ import { Rng } from "./rng.js";
 import { kickoff, type WorldState } from "./world.js";
 import { step, viewFor } from "./step.js";
 
+/**
+ * What the ball is doing this tick:
+ *   controlled — a player has it
+ *   pass/shot  — released by a kick and still travelling fast
+ *   loose      — uncontrolled and slow enough to be contested by anyone
+ */
+export type BallMode = "controlled" | "pass" | "shot" | "loose";
+
 export interface ReplayFrame {
   t: number;
-  ball: { x: number; y: number };
+  ball: { x: number; y: number; mode: BallMode; side: "home" | "away" | null };
   players: { id: number; side: "home" | "away"; x: number; y: number; ball: boolean }[];
   score: { home: number; away: number };
 }
@@ -26,10 +34,22 @@ export interface MatchResult {
   frames: ReplayFrame[];
 }
 
+function ballMode(world: WorldState): { mode: BallMode; side: "home" | "away" | null } {
+  const ball = world.ball;
+  const sideOf = (id: number | null) => world.players.find((p) => p.id === id)?.side ?? null;
+  if (ball.ownerId !== null) return { mode: "controlled", side: sideOf(ball.ownerId) };
+  const speed = Math.hypot(ball.vel.x, ball.vel.y);
+  if (ball.lastKick && speed > RULES.hotBallSpeed) {
+    return { mode: ball.lastKick === "shoot" ? "shot" : "pass", side: sideOf(ball.lastTouchedBy) };
+  }
+  return { mode: "loose", side: null };
+}
+
 function snapshot(world: WorldState): ReplayFrame {
+  const { mode, side } = ballMode(world);
   return {
     t: world.tick,
-    ball: { x: round(world.ball.pos.x), y: round(world.ball.pos.y) },
+    ball: { x: round(world.ball.pos.x), y: round(world.ball.pos.y), mode, side },
     players: world.players.map((p) => ({
       id: p.id,
       side: p.side,

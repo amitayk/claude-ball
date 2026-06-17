@@ -16,6 +16,10 @@ export interface BallState {
   pos: Vec2;
   vel: Vec2;
   ownerId: number | null;
+  /** Last player to control or kick the ball (for deriving the ball's mode). */
+  lastTouchedBy: number | null;
+  /** The kind of the kick that released the ball, cleared once controlled. */
+  lastKick: "pass" | "shoot" | null;
 }
 
 export interface WorldState {
@@ -70,7 +74,7 @@ export function kickoff(rng: Rng, prev?: WorldState): WorldState {
   return {
     tick: prev ? prev.tick : 0,
     players,
-    ball: { pos: center(), vel: { x: 0, y: 0 }, ownerId: null },
+    ball: { pos: center(), vel: { x: 0, y: 0 }, ownerId: null, lastTouchedBy: null, lastKick: null },
     score: prev ? { ...prev.score } : { home: 0, away: 0 },
   };
 }

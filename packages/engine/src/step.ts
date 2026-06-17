@@ -117,6 +117,8 @@ function tryKick(world: WorldState, p: PlayerState, intent: Intent | undefined):
   const d = dirTo(world.ball.pos, intent.to);
   world.ball.vel = { x: d.x * speed, y: d.y * speed };
   world.ball.ownerId = null;
+  world.ball.lastTouchedBy = p.id;
+  world.ball.lastKick = intent.kind;
   p.kickCooldown = Math.round(RULES.kickCooldown / dt);
   return true;
 }
@@ -205,6 +207,12 @@ export function step(
 ): WorldState {
   // 1. Determine possession before acting.
   world.ball.ownerId = resolveOwner(world);
+  if (world.ball.ownerId !== null) {
+    // Controlled: this player is now the last toucher; the ball is no longer
+    // "in flight" from a prior kick.
+    world.ball.lastTouchedBy = world.ball.ownerId;
+    world.ball.lastKick = null;
+  }
 
   // 2. Apply movement + kicks.
   for (const p of world.players) {

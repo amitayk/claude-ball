@@ -241,27 +241,75 @@ function drawLabels(W, H, goalHeight) {
 
 function drawFrame(f) {
   drawPitch();
-  let owner = null;
   for (const p of f.players) {
     ctx.beginPath();
     ctx.fillStyle = COLORS[p.side];
     ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
     ctx.fill();
     if (p.ball) {
-      owner = p.side;
       ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
     }
   }
+  drawBall(f);
+
+  $("time").textContent = (f.t * meta.dt).toFixed(1) + "s";
+  $("scrub").value = String(frameIdx);
+  updatePossession(f.ball);
+}
+
+// Render the ball according to its mode: a team-coloured motion trail + tinted
+// outline while a pass/shot is in flight; a neutral dashed ring when the ball
+// is genuinely loose (contestable); plain when a player controls it.
+function drawBall(f) {
+  const { mode, side } = f.ball;
+  const tint = side ? COLORS[side] : null;
+  const inFlight = mode === "pass" || mode === "shot";
+
+  // motion trail from the previous frames toward the current position
+  const TRAIL = inFlight ? 12 : 6;
+  const start = Math.max(1, frameIdx - TRAIL);
+  ctx.lineCap = "round";
+  for (let j = start; j <= frameIdx; j++) {
+    const a = replay.frames[j - 1].ball;
+    const b = replay.frames[j].ball;
+    const t = (j - start + 1) / (frameIdx - start + 1);
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    ctx.lineTo(b.x, b.y);
+    ctx.strokeStyle = inFlight ? tint ?? "#fff" : "rgba(255,255,255,1)";
+    ctx.globalAlpha = (inFlight ? 0.55 : 0.16) * t;
+    ctx.lineWidth = inFlight ? (mode === "shot" ? 5 : 4) : 2;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
   ctx.beginPath();
   ctx.fillStyle = COLORS.ball;
   ctx.arc(f.ball.x, f.ball.y, 8, 0, Math.PI * 2);
   ctx.fill();
+  if (inFlight && tint) {
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = tint;
+    ctx.stroke();
+  } else if (mode === "loose") {
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.7)";
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
 
-  $("time").textContent = (f.t * meta.dt).toFixed(1) + "s";
-  $("scrub").value = String(frameIdx);
+function updatePossession(ball) {
   const poss = $("possession");
-  poss.textContent = owner ? `${teamLabel(owner)} on the ball` : "loose ball";
-  poss.style.color = owner ? COLORS[owner] : "var(--muted)";
+  const who = ball.side ? teamLabel(ball.side) : null;
+  const text =
+    ball.mode === "controlled" ? `${who} on the ball`
+    : ball.mode === "pass" ? `${who} — pass in flight`
+    : ball.mode === "shot" ? `${who} — shot in flight`
+    : "loose ball";
+  poss.textContent = text;
+  poss.style.color = ball.side ? COLORS[ball.side] : "var(--muted)";
 }
 
 function loop(now) {
