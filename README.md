@@ -27,7 +27,7 @@ AI session in `templates/brain-starter/` so its `CLAUDE.md` is in effect.
 ### Headless matches
 
 ```bash
-# built-in brains (by name): chaser, formation
+# library bots (by name): chaser, formation, flow, blitz, possession
 npm run match -- formation chaser
 # your own brain (by path) vs a built-in, write a replay
 npm run match -- ./packages/brains/src/chaser.ts formation --seed 3 --out packages/viewer/replay.json
@@ -41,7 +41,7 @@ Same `(seed, home, away, params)` ⇒ exact same match, every time.
 ### Running brains
 
 ```bash
-# built-in brains (by name): chaser, formation
+# library bots (by name): chaser, formation, flow, blitz, possession
 npm run match -- formation chaser
 
 # your own brain (by path) vs a built-in
@@ -64,7 +64,7 @@ rendering and I/O live outside it.
 |---|---|
 | [`@kr/brain-api`](packages/brain-api) | **The public contract.** `Brain`, `WorldView`, `Intent`, vector helpers. Zero dependencies. |
 | [`@kr/engine`](packages/engine) | Deterministic simulation: physics, possession, goals, match loop, replay recording. |
-| [`@kr/brains`](packages/brains) | Built-in sample brains (`chaser`, `formation`). |
+| [`@kr/brains`](packages/brains) | Library opponents (chaser, formation, flow, blitz, possession) with a round-robin skill (0–100) + blurb. |
 | [`@kr/runner`](packages/runner) | CLI: load two brains, run a match, write a replay. |
 | [`@kr/viewer`](packages/viewer) | Zero-build browser replay player (canvas). |
 | [`@kr/coach`](packages/coach) | Live coach workbench: dev server (SSE + hot reload), field, control panel, git versions UI. |
@@ -84,10 +84,12 @@ interface Brain {
 }
 ```
 
-Declaring `params` exposes named values (`{ default, min, max, step, label }`) as
-sliders in the coach control panel; the resolved values arrive as the second
-argument to `decide`. Brains that declare none can ignore it. The *knobs* are
-agreed with your assistant; the *values* are the coach's to turn.
+Declaring `params` exposes named values (`{ default, min, max, step, label?, help }`)
+as sliders in the coach control panel; the resolved values arrive as the second
+argument to `decide`. `help` (a one-line explanation, shown under the slider) is
+**required** on every param. Brains that declare no params can ignore the second
+argument. The *knobs* are agreed with your assistant; the *values* are the
+coach's to turn.
 
 Each tick you get a `WorldView` and return one `Intent` per player you control:
 

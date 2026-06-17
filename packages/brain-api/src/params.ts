@@ -11,8 +11,13 @@ export interface ParamSpec {
   max: number;
   /** Slider granularity. */
   step: number;
-  /** Optional human label for the control panel (falls back to the key). */
+  /** Optional short human label for the control panel (falls back to the key). */
   label?: string;
+  /**
+   * REQUIRED short explanation of what this knob does, shown under its slider.
+   * Every param must explain itself so the coach knows what they're turning.
+   */
+  help: string;
 }
 
 export type ParamsSpec = Record<string, ParamSpec>;

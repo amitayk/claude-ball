@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import type { Brain, ParamValues } from "@kr/brain-api";
 import { resolveParams } from "@kr/brain-api";
 import { runMatch, type MatchResult } from "@kr/engine";
-import { importBrainFile, listOpponents, loadOpponent } from "./brains.js";
+import { importBrainFile, listOpponents, loadOpponent, SELF_OPPONENT } from "./brains.js";
 import * as git from "./git.js";
 
 // ── config / paths ──────────────────────────────────────────────────────────
@@ -61,11 +61,13 @@ function paramsPayload() {
   return { spec, values: resolveParams(spec, overrides) };
 }
 function statusPayload() {
+  const mirror = opponentName === SELF_OPPONENT;
   return {
     you: coachBrain?.name ?? "your brain",
-    opponent: opponentBrain?.name ?? opponentName,
+    // For a mirror match, label the opponent clearly rather than repeating the name.
+    opponent: mirror ? `${coachBrain?.name ?? "your brain"} (mirror)` : opponentBrain?.name ?? opponentName,
     opponentRef: opponentName,
-    opponents: listOpponents(cwd, brainPath),
+    opponents: listOpponents(),
     seed,
     score: lastReplay?.score ?? null,
     error: lastError,
@@ -84,7 +86,10 @@ async function reloadCoachBrain(): Promise<void> {
   coachBrain = await importBrainFile(brainPath);
 }
 async function reloadOpponent(): Promise<void> {
-  opponentBrain = await loadOpponent(opponentName, cwd);
+  // "yourself" → a fresh, independent instance of the coach's own brain, so a
+  // stateful brain's two sides don't share module-level state.
+  opponentBrain =
+    opponentName === SELF_OPPONENT ? await importBrainFile(brainPath) : await loadOpponent(opponentName, cwd);
 }
 
 function runAndBroadcast(tag = "current"): void {

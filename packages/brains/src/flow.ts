@@ -13,18 +13,18 @@ import { dist } from "@kr/brain-api";
  * The numbers below are tunable live from the coach control panel (params).
  * The knobs are fixed in code; turn the values to taste.
  */
-export const brain: Brain = {
+export const flow: Brain = {
   name: "flow",
   params: {
-    shootDistFrac: { default: 0.35, min: 0.1, max: 0.6, step: 0.01, label: "Shoot distance (×width)" },
-    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance" },
-    laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than" },
-    keeperStandoff: { default: 60, min: 0, max: 300, step: 5, label: "Keeper standoff" },
-    enemyCloseDist: { default: 70, min: 0, max: 200, step: 5, label: "Pressure radius" },
-    playmakerDrop: { default: 90, min: 0, max: 300, step: 5, label: "Playmaker drop" },
-    forwardPush: { default: 150, min: 0, max: 500, step: 10, label: "Forward push" },
-    channelLeftY: { default: 0.28, min: 0.05, max: 0.5, step: 0.02, label: "Left channel" },
-    channelRightY: { default: 0.72, min: 0.5, max: 0.95, step: 0.02, label: "Right channel" },
+    shootDistFrac: { default: 0.35, min: 0.1, max: 0.6, step: 0.01, label: "Shoot distance (×width)", help: "Shoot once the carrier is this fraction of the pitch width from goal." },
+    laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "How close an opponent must be to a pass line for it to count as blocked." },
+    laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than", help: "Opponents this close to the passer are ignored when checking lanes." },
+    keeperStandoff: { default: 60, min: 0, max: 300, step: 5, label: "Keeper standoff", help: "How far in front of our goal the keeper sits." },
+    enemyCloseDist: { default: 70, min: 0, max: 200, step: 5, label: "Pressure radius", help: "An opponent within this distance counts as pressuring the ball." },
+    playmakerDrop: { default: 90, min: 0, max: 300, step: 5, label: "Playmaker drop", help: "How far behind the ball the deep playmaker offers an outlet." },
+    forwardPush: { default: 150, min: 0, max: 500, step: 10, label: "Forward push", help: "How far ahead of the ball the forwards make their runs." },
+    channelLeftY: { default: 0.28, min: 0.05, max: 0.5, step: 0.02, label: "Left channel", help: "Vertical lane (fraction of height) the left forward runs." },
+    channelRightY: { default: 0.72, min: 0.5, max: 0.95, step: 0.02, label: "Right channel", help: "Vertical lane (fraction of height) the right forward runs." },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const SHOOT_DIST_FRAC = p.shootDistFrac!;
@@ -207,4 +207,4 @@ export const brain: Brain = {
   },
 };
 
-export default brain;
+export default flow;

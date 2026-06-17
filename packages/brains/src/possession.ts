@@ -12,7 +12,7 @@ import { dist } from "@kr/brain-api";
  *     from him at the greatest distance they can.
  *   - Never shoots.
  */
-export const brain: Brain = {
+export const possession: Brain = {
   name: "possession",
   params: {
     laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "How close an opponent must be to a pass line for it to count as blocked." },
@@ -303,4 +303,4 @@ let lastTick = -1;
 let lastOwnerWasTeammate = false;
 let lastPassTargetId: number | null = null;
 
-export default brain;
+export default possession;

@@ -125,12 +125,19 @@ interface Brain {
 
 ```ts
 params: {
-  pressDistance: { default: 70, min: 0, max: 200, step: 5, label: "Press distance" },
+  pressDistance: {
+    default: 70, min: 0, max: 200, step: 5,
+    label: "Press distance",
+    help: "An opponent within this distance counts as pressuring the ball.", // REQUIRED
+  },
 }
 ```
 
-Resolved values arrive as `decide`'s second argument. Defaults live in code; the
-coach's saved values live in `src/brain.params.json` (committed).
+`help` is **required** on every param (the type enforces it): one short sentence
+explaining what the knob does, shown under its slider so the coach knows what
+they're turning. Resolved values arrive as `decide`'s second argument. Defaults
+live in code; the coach's saved values live in `src/brain.params.json`
+(committed).
 
 ## Correctness rules (mechanical — always apply)
 
@@ -169,6 +176,11 @@ It hot-reloads: when you edit `src/brain.ts`, the match re-runs automatically �
 the coach does not run terminal commands to see changes. The control panel,
 opponent picker, seed (🎲 for a random game), and version history all live on
 that page.
+
+Opponents are named library bots — `chaser`, `formation`, `flow`, `blitz`,
+`possession` — each shown with a 0–100 skill rating (from a round-robin) and a
+one-line description. There's also `yourself`, a mirror match against the coach's
+own current brain.
 
 The API above is everything you need to write a brain. `README.md` covers the
 same ground with more prose if you want it.

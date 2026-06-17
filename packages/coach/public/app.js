@@ -48,7 +48,7 @@ es.addEventListener("error", (e) => showError(JSON.parse(e.data).message));
 
 // ── status ──────────────────────────────────────────────────────────────────
 function applyStatus(s) {
-  $("homeName").textContent = s.you;
+  $("homeName").textContent = `${s.you} (you)`;
   $("awayName").textContent = s.opponent;
   if (s.score) $("score").textContent = `${s.score.home} – ${s.score.away}`;
   $("seed").value = s.seed;
@@ -57,10 +57,12 @@ function applyStatus(s) {
   if (sel.dataset.list !== JSON.stringify(s.opponents)) {
     sel.dataset.list = JSON.stringify(s.opponents);
     sel.innerHTML = "";
-    for (const name of s.opponents) {
+    for (const opp of s.opponents) {
       const o = document.createElement("option");
-      o.value = name;
-      o.textContent = name;
+      o.value = opp.name;
+      const tag = opp.skill == null ? "mirror" : `skill ${opp.skill}`;
+      o.textContent = `${opp.name} · ${tag} — ${opp.blurb}`;
+      o.title = opp.blurb;
       sel.appendChild(o);
     }
   }
@@ -91,7 +93,8 @@ function renderParams() {
     wrap.className = "param";
     wrap.innerHTML = `
       <div class="plabel"><span>${spec.label ?? key}</span><span class="pval" id="pv-${key}">${fmt(val)}</span></div>
-      <input type="range" id="pr-${key}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${val}" />`;
+      <input type="range" id="pr-${key}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${val}" />
+      <div class="phelp">${spec.help ?? ""}</div>`;
     host.appendChild(wrap);
     const slider = wrap.querySelector("input");
     slider.addEventListener("input", () => {
