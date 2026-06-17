@@ -32,6 +32,23 @@ export const RULES = {
 
   /** A player controls the ball when within this distance of it. */
   controlDistance: 28,
+  /**
+   * A ball moving faster than this is "hot" (just passed/shot): it can only be
+   * taken by genuine contact (hotCaptureDistance), so passes fly past players
+   * near the lane instead of sticking to them. Set above player.maxSpeed (200)
+   * so a dribbled ball (carried at the owner's speed) stays controllable.
+   */
+  hotBallSpeed: 250,
+  /** Capture distance for a hot ball: player radius + ball radius = real contact. */
+  hotCaptureDistance: 20,
+  /**
+   * Possession hysteresis: the current owner keeps the ball while it stays
+   * within controlDistance * this factor, and a challenger can only steal it by
+   * being at least `stealMargin` units closer than the owner. This stops a
+   * contested loose ball from strobing between several nearby players.
+   */
+  possessionRetainFactor: 1.5,
+  stealMargin: 6,
   /** Seconds a player must wait between kicks. */
   kickCooldown: 0.35,
 } as const;

@@ -53,18 +53,47 @@ export function viewFor(world: WorldState, side: Side): WorldView {
   };
 }
 
-/** Resolve which player (if any) controls the ball: nearest within range. */
+/** Resolve which player (if any) controls the ball: nearest within range.
+ * Players still in kick cooldown can't take possession, so a player who just
+ * passed/shot doesn't instantly re-acquire his own kick. */
 function resolveOwner(world: WorldState): number | null {
-  let best: number | null = null;
-  let bestD: number = RULES.controlDistance;
+  const ball = world.ball;
+  const distTo = (p: PlayerState) => Math.hypot(p.pos.x - ball.pos.x, p.pos.y - ball.pos.y);
+
+  // A hot (recently kicked) ball needs genuine contact to be controlled; a
+  // cooled (slow) ball can be picked up at the normal range.
+  const ballSpeed = Math.hypot(ball.vel.x, ball.vel.y);
+  const captureRange =
+    ballSpeed > RULES.hotBallSpeed ? RULES.hotCaptureDistance : RULES.controlDistance;
+
+  // Nearest eligible (not in kick cooldown) player and its distance.
+  let nearest: PlayerState | null = null;
+  let nearestD = Infinity;
   for (const p of world.players) {
-    const d = Math.hypot(p.pos.x - world.ball.pos.x, p.pos.y - world.ball.pos.y);
-    if (d <= bestD) {
-      bestD = d;
-      best = p.id;
+    if (p.kickCooldown > 0) continue;
+    const d = distTo(p);
+    if (d < nearestD) {
+      nearestD = d;
+      nearest = p;
     }
   }
-  return best;
+  if (!nearest) return null;
+
+  // Possession hysteresis: if there's a current owner still in range, they keep
+  // the ball unless a challenger is clearly closer — no per-tick strobing.
+  if (ball.ownerId !== null) {
+    const owner = world.players.find((p) => p.id === ball.ownerId);
+    if (owner && owner.kickCooldown === 0) {
+      const ownerD = distTo(owner);
+      if (ownerD <= RULES.controlDistance * RULES.possessionRetainFactor) {
+        const stolen = nearest.id !== owner.id && nearestD < ownerD - RULES.stealMargin;
+        return stolen ? nearest.id : owner.id;
+      }
+    }
+  }
+
+  // No retaining owner: the nearest player takes it if within capture range.
+  return nearestD <= captureRange ? nearest.id : null;
 }
 
 function applyMovement(p: PlayerState, intent: Intent | undefined): void {
