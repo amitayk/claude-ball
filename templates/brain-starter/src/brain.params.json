@@ -1,12 +1,13 @@
 {
-  "laneClearance": 36,
-  "laneIgnoreNear": 35,
-  "cornerRunSec": 2,
-  "cornerInset": 40,
-  "cornerCloseDist": 120,
-  "wideOpenDist": 380,
-  "wideOpenMinDist": 150,
-  "finishXFrac": 0.42,
-  "centralBandFrac": 0.6,
-  "defStandoff": 120
+  "laneClearance": 67,
+  "laneIgnoreNear": 4,
+  "cornerRunSec": 1,
+  "cornerInset": 105,
+  "cornerCloseDist": 80,
+  "wideOpenDist": 300,
+  "wideOpenMinDist": 130,
+  "finishXFrac": 0.46,
+  "centralBandFrac": 0.7,
+  "defStandoff": 120,
+  "shotCornerFrac": 0.8
 }
