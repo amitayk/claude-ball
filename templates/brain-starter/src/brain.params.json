@@ -4,7 +4,7 @@
   "cornerRunSec": 2,
   "cornerInset": 40,
   "cornerCloseDist": 120,
-  "wideOpenDist": 150,
+  "wideOpenDist": 60,
   "wideOpenMinDist": 150,
   "finishXFrac": 0.42,
   "centralBandFrac": 0.6,
