@@ -25,6 +25,7 @@ export const brain: Brain = {
     finishXFrac: { default: 0.2, min: 0.05, max: 0.5, step: 0.01, label: "Finish zone (×width)" },
     centralBandFrac: { default: 0.6, min: 0.2, max: 1, step: 0.05, label: "Central band (Y)" },
     defStandoff: { default: 120, min: 20, max: 400, step: 10, label: "Blocker standoff from goal" },
+    shotCornerFrac: { default: 0.8, min: 0, max: 1, step: 0.05, label: "Shot corner (×goal half)" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const LANE_CLEARANCE = p.laneClearance!;
@@ -36,8 +37,8 @@ export const brain: Brain = {
     const WIDE_OPEN_MIN = p.wideOpenMinDist!;
     const FINISH_X_FRAC = p.finishXFrac!;
     const CENTRAL_BAND_FRAC = p.centralBandFrac!;
-    const POST_INSET = 8; // aim this far inside the post
     const DEF_STANDOFF = p.defStandoff!;
+    const SHOT_CORNER_FRAC = p.shotCornerFrac!; // aim this far from centre toward the post
 
     const intents: TeamIntent = {};
     const W = view.field.width;
@@ -211,8 +212,8 @@ export const brain: Brain = {
           const goalHalf = view.field.goalHeight / 2;
           const farY =
             carrier.pos.y <= H / 2
-              ? H / 2 + goalHalf - POST_INSET // shooter high → aim low corner
-              : H / 2 - goalHalf + POST_INSET; // shooter low → aim high corner
+              ? H / 2 + goalHalf * SHOT_CORNER_FRAC // shooter high → aim low, 80% out
+              : H / 2 - goalHalf * SHOT_CORNER_FRAC; // shooter low → aim high, 80% out
           intents[carrier.id] = { kind: "shoot", to: { x: view.targetGoalX, y: farY } };
         } else {
           intents[carrier.id] = { kind: "move", to: { x: carrier.pos.x, y: H / 2 } };
