@@ -9,5 +9,5 @@
   "finishXFrac": 0.35,
   "centralBandFrac": 0.7,
   "defStandoff": 120,
-  "shotCornerFrac": 0.8
+  "shotCornerFrac": 0.5
 }
