@@ -40,6 +40,8 @@ export function viewFor(world: WorldState, side: Side): WorldView {
     dt,
     field: { ...RULES.field },
     side,
+    phase: world.phase,
+    kickoffSide: world.kickoffSide,
     attackDir,
     targetGoalX: side === "home" ? RULES.field.width : 0,
     ownGoalX: side === "home" ? 0 : RULES.field.width,
@@ -261,25 +263,54 @@ export function step(
     world.ball.lastKick = null;
   }
 
-  // 2. Apply movement + kicks.
+  // 2. Apply movement + kicks. Track whether the kicking team has taken its kick.
+  let kickingSideKicked = false;
   for (const p of world.players) {
     const intents = p.side === "home" ? homeIntents : awayIntents;
     const intent = intents[p.id];
     applyMovement(p, intent);
-    tryKick(world, p, intent);
+    const kicked = tryKick(world, p, intent);
+    if (kicked && p.side === world.kickoffSide) kickingSideKicked = true;
   }
 
   // 3. Integrate physics.
   integratePlayers(world);
+  if (world.phase === "kickoff") enforceKickoffExclusion(world);
   const scorer = integrateBall(world);
 
   world.tick++;
 
   if (scorer) {
     world.score[scorer]++;
-    const reset = kickoff(rng, world);
-    reset.tick = world.tick;
-    return reset;
+    // The conceding team takes the next kickoff.
+    const conceding: Side = scorer === "home" ? "away" : "home";
+    return kickoff(rng, conceding, world);
+  }
+
+  // 4. Lift the kickoff exclusion once the ball is genuinely in play.
+  if (world.phase === "kickoff") {
+    const cx = RULES.field.width / 2;
+    const cy = RULES.field.height / 2;
+    const ballOut = Math.hypot(world.ball.pos.x - cx, world.ball.pos.y - cy) > RULES.field.centerRadius;
+    const graceOver = world.tick - world.kickoffTick >= Math.round(RULES.kickoffGraceSeconds / dt);
+    if (kickingSideKicked || ballOut || graceOver) world.phase = "open";
   }
   return world;
+}
+
+/** Hold the non-kicking team's players outside the centre circle at kickoff. */
+function enforceKickoffExclusion(world: WorldState): void {
+  const cx = RULES.field.width / 2;
+  const cy = RULES.field.height / 2;
+  const minDist = RULES.field.centerRadius + RULES.player.radius;
+  for (const p of world.players) {
+    if (p.side === world.kickoffSide) continue;
+    const dx = p.pos.x - cx;
+    const dy = p.pos.y - cy;
+    const d = Math.hypot(dx, dy);
+    if (d < minDist) {
+      if (d < 1e-6) p.pos = { x: cx + minDist, y: cy };
+      else p.pos = { x: cx + (dx / d) * minDist, y: cy + (dy / d) * minDist };
+    }
+  }
 }

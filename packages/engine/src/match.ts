@@ -1,4 +1,4 @@
-import type { Brain, ParamValues, TeamIntent } from "@kr/brain-api";
+import type { Brain, ParamValues, Side, TeamIntent } from "@kr/brain-api";
 import { resolveParams } from "@kr/brain-api";
 import { RULES } from "./constants.js";
 import { Rng } from "./rng.js";
@@ -18,6 +18,8 @@ export interface ReplayFrame {
   ball: { x: number; y: number; mode: BallMode; side: "home" | "away" | null };
   players: { id: number; side: "home" | "away"; x: number; y: number; ball: boolean }[];
   score: { home: number; away: number };
+  phase: "kickoff" | "open";
+  kickoffSide: "home" | "away";
 }
 
 export interface MatchResult {
@@ -58,6 +60,8 @@ function snapshot(world: WorldState): ReplayFrame {
       ball: world.ball.ownerId === p.id,
     })),
     score: { ...world.score },
+    phase: world.phase,
+    kickoffSide: world.kickoffSide,
   };
 }
 
@@ -97,7 +101,10 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
   const awayParams = resolveParams(away.params, opts.awayParams);
 
   const rng = new Rng(seed);
-  let world = kickoff(rng);
+  // The opening kickoff side is decided by the seed; thereafter the conceding
+  // team takes it (handled in step()).
+  const openingSide: Side = rng.next() < 0.5 ? "home" : "away";
+  let world = kickoff(rng, openingSide);
   const frames: ReplayFrame[] = [snapshot(world)];
 
   for (let i = 0; i < ticks; i++) {

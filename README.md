@@ -102,10 +102,13 @@ type Intent =
 
 Key `WorldView` fields: `ball`, `teammates`, `opponents` (all read-only with
 `pos`/`vel`), `side`, `attackDir` (+1/-1), `targetGoalX`, `ownGoalX`, `field`,
-`score`, `tick`, `dt`.
+`phase` (`"kickoff" | "open"`), `kickoffSide`, `score`, `tick`, `dt`.
 
 Rules: 4 players per side, ~90s matches at 30 ticks/sec. A player controls the
-ball within `controlDistance`; kicks have a short cooldown. See
+ball within `controlDistance`; kicks have a short cooldown. **Kickoff:** the
+conceding team (or a seed-chosen side to open) starts with the ball on the centre
+spot; the other team is held outside the centre circle until the ball is kicked,
+leaves the circle, or a few seconds pass. See
 [`packages/engine/src/constants.ts`](packages/engine/src/constants.ts).
 
 ### Rules for brains

@@ -31,6 +31,8 @@ export interface FieldInfo {
   readonly height: number;
   /** Vertical span of the goal mouth, centered on height/2. */
   readonly goalHeight: number;
+  /** Radius of the centre circle (the kickoff exclusion zone). */
+  readonly centerRadius: number;
 }
 
 /**
@@ -46,12 +48,24 @@ export interface FieldInfo {
  *   - Don't hardcode left/right: a brain plays either side, so steer by
  *     `attackDir` / `targetGoalX` / `ownGoalX`, never by a literal x value.
  */
+/** Whether play is restarting from a kickoff or live ("open"). */
+export type Phase = "kickoff" | "open";
+
 export interface WorldView {
   readonly tick: number;
   readonly dt: number;
   readonly field: FieldInfo;
   /** The side this brain is controlling. */
   readonly side: Side;
+  /**
+   * "kickoff" while a restart is in progress: the `kickoffSide` team starts
+   * with the ball at the centre spot and the other team is held outside the
+   * centre circle until they kick, the ball leaves the circle, or a few seconds
+   * pass. "open" the rest of the time. Check
+   * `phase === "kickoff" && kickoffSide === side` to know you're taking it.
+   */
+  readonly phase: Phase;
+  readonly kickoffSide: Side;
   /** +1 if this team attacks toward increasing x, -1 otherwise. */
   readonly attackDir: 1 | -1;
   /** x-coordinate of the goal this team is shooting at. */

@@ -22,11 +22,19 @@ export interface BallState {
   lastKick: "pass" | "shoot" | null;
 }
 
+export type Phase = "kickoff" | "open";
+
 export interface WorldState {
   tick: number;
   players: PlayerState[];
   ball: BallState;
   score: { home: number; away: number };
+  /** "kickoff" while the restart exclusion is active, else "open". */
+  phase: Phase;
+  /** The team taking the current/most-recent kickoff. */
+  kickoffSide: Side;
+  /** Tick at which the current kickoff began (for the grace timeout). */
+  kickoffTick: number;
 }
 
 const center = (): Vec2 => ({ x: RULES.field.width / 2, y: RULES.field.height / 2 });
@@ -35,15 +43,18 @@ const center = (): Vec2 => ({ x: RULES.field.width / 2, y: RULES.field.height / 
  * Build a kickoff layout. Home occupies the left half, away the right,
  * mirrored. Player ids: home = 0..N-1, away = N..2N-1.
  *
- * Start positions are jittered by up to RULES.kickoffJitter on each axis using
- * `rng`, so each game (and each post-goal restart) varies a little while
- * staying fully deterministic for a given seed.
+ * `kickingSide` takes the kickoff: its most-central player is placed on the
+ * ball at the centre spot with possession, and play starts in the "kickoff"
+ * phase (the other team is held outside the centre circle by `step`). Start
+ * positions are jittered by up to RULES.kickoffJitter on each axis using `rng`,
+ * so each restart varies a little while staying deterministic for a given seed.
  */
-export function kickoff(rng: Rng, prev?: WorldState): WorldState {
+export function kickoff(rng: Rng, kickingSide: Side, prev?: WorldState): WorldState {
   const { width, height } = RULES.field;
   const n = RULES.playersPerSide;
   const r = RULES.player.radius;
   const J = RULES.kickoffJitter;
+  const c = center();
   const players: PlayerState[] = [];
 
   const jitter = (v: number, lo: number, hi: number) =>
@@ -71,11 +82,23 @@ export function kickoff(rng: Rng, prev?: WorldState): WorldState {
     });
   }
 
+  // The kicking team's most-central player takes the kickoff: snap onto the
+  // ball at the centre spot and give them possession.
+  const taker = players
+    .filter((p) => p.side === kickingSide)
+    .reduce((best, p) => (Math.abs(p.pos.y - c.y) < Math.abs(best.pos.y - c.y) ? p : best));
+  taker.pos = { x: c.x, y: c.y };
+  taker.vel = { x: 0, y: 0 };
+
+  const tick = prev ? prev.tick : 0;
   return {
-    tick: prev ? prev.tick : 0,
+    tick,
     players,
-    ball: { pos: center(), vel: { x: 0, y: 0 }, ownerId: null, lastTouchedBy: null, lastKick: null },
+    ball: { pos: { ...c }, vel: { x: 0, y: 0 }, ownerId: taker.id, lastTouchedBy: taker.id, lastKick: null },
     score: prev ? { ...prev.score } : { home: 0, away: 0 },
+    phase: "kickoff",
+    kickoffSide: kickingSide,
+    kickoffTick: tick,
   };
 }
 

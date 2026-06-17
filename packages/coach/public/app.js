@@ -187,7 +187,7 @@ function drawPitch() {
   ctx.lineWidth = 2;
   ctx.strokeRect(8, 8, W - 16, H - 16);
   ctx.beginPath(); ctx.moveTo(W / 2, 8); ctx.lineTo(W / 2, H - 8); ctx.stroke();
-  ctx.beginPath(); ctx.arc(W / 2, H / 2, 70, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W / 2, H / 2, meta.field.centerRadius ?? 70, 0, Math.PI * 2); ctx.stroke();
 
   const top = (H - goalHeight) / 2;
   ctx.strokeStyle = "rgba(255,255,255,0.85)";
@@ -250,11 +250,34 @@ function drawFrame(f) {
       ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
     }
   }
+  if (f.phase === "kickoff") drawKickoff(f);
   drawBall(f);
 
   $("time").textContent = (f.t * meta.dt).toFixed(1) + "s";
   $("scrub").value = String(frameIdx);
-  updatePossession(f.ball);
+  updatePossession(f);
+}
+
+// Emphasise the centre circle in the kicking team's colour and badge the phase.
+function drawKickoff(f) {
+  const W = meta.field.width;
+  const cx = W / 2;
+  const cy = meta.field.height / 2;
+  const tint = COLORS[f.kickoffSide];
+  ctx.save();
+  ctx.strokeStyle = tint;
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.9;
+  ctx.beginPath();
+  ctx.arc(cx, cy, meta.field.centerRadius ?? 70, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = tint;
+  ctx.font = "bold 14px ui-monospace, monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.fillText(`KICKOFF — ${teamLabel(f.kickoffSide)}`, cx, cy - (meta.field.centerRadius ?? 70) - 8);
+  ctx.restore();
 }
 
 // Render the ball according to its mode: a team-coloured motion trail + tinted
@@ -300,8 +323,14 @@ function drawBall(f) {
   }
 }
 
-function updatePossession(ball) {
+function updatePossession(f) {
   const poss = $("possession");
+  const ball = f.ball;
+  if (f.phase === "kickoff") {
+    poss.textContent = `kickoff — ${teamLabel(f.kickoffSide)}`;
+    poss.style.color = COLORS[f.kickoffSide];
+    return;
+  }
   const who = ball.side ? teamLabel(ball.side) : null;
   const text =
     ball.mode === "controlled" ? `${who} on the ball`

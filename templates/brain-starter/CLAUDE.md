@@ -109,8 +109,14 @@ interface Brain {
 
 - `ball`: `{ pos, vel, ownerId }` (`ownerId` = controlling player's id, or `null`).
 - `teammates` / `opponents`: each `{ id, side, pos, vel, hasBall }`.
-- `field`: `{ width, height, goalHeight }`.
+- `field`: `{ width, height, goalHeight, centerRadius }`.
 - `attackDir`, `targetGoalX`, `ownGoalX` — orient by these (see below).
+- `phase`: `"kickoff" | "open"`, and `kickoffSide`. During a kickoff the
+  `kickoffSide` team starts with the ball on the centre spot and the other team
+  is held outside the centre circle until it kicks, the ball leaves the circle,
+  or ~3s pass. You're taking the kickoff when
+  `phase === "kickoff" && kickoffSide === side`. After a goal, the team that
+  conceded takes the next kickoff.
 - `score`, `tick`, `dt`.
 
 ### Params

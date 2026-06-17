@@ -4,12 +4,22 @@ export const RULES = {
     width: 1050,
     height: 680,
     goalHeight: 200,
+    /** Radius of the centre circle; the kickoff exclusion zone. */
+    centerRadius: 70,
   },
 
   /** Fixed timestep. 30 ticks per simulated second. */
   dt: 1 / 30,
   /** Match length in simulated seconds. */
   matchSeconds: 90,
+
+  /**
+   * At kickoff the conceding team starts with the ball at the centre spot and
+   * the other team must stay outside the centre circle. The exclusion lifts as
+   * soon as the kicking team kicks or the ball leaves the circle — or after
+   * this many seconds, so a team can't stall by sitting on the ball.
+   */
+  kickoffGraceSeconds: 3,
 
   playersPerSide: 4,
 
