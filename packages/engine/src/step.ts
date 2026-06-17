@@ -106,8 +106,33 @@ function applyMovement(p: PlayerState, intent: Intent | undefined): void {
       if (l > 1e-9) desired = { x: intent.dir.x / l, y: intent.dir.y / l };
     }
   }
-  // Arcade movement: velocity tracks the desired direction at max speed.
-  p.vel = clampLen({ x: desired.x * RULES.player.maxSpeed, y: desired.y * RULES.player.maxSpeed }, RULES.player.maxSpeed);
+
+  const { maxSpeed, accel, turnPenalty } = RULES.player;
+  // Target velocity for this intent (zero when idle → coast to a stop).
+  const target = { x: desired.x * maxSpeed, y: desired.y * maxSpeed };
+
+  // Steer the current velocity toward the target, capped by acceleration. This
+  // gives momentum: you ramp up to speed and can't flip direction instantly.
+  let a = accel;
+  const speed = Math.hypot(p.vel.x, p.vel.y);
+  const desiredLen = Math.hypot(desired.x, desired.y);
+  if (speed > 1e-6 && desiredLen > 1e-6) {
+    // align = cos(angle) between current motion and desired heading: +1 same
+    // direction, -1 a full reversal. Reduce acceleration as we turn against it.
+    const align = (p.vel.x * desired.x + p.vel.y * desired.y) / speed;
+    a *= 1 - turnPenalty * ((1 - align) / 2);
+  }
+  const maxDv = a * dt;
+
+  const dvx = target.x - p.vel.x;
+  const dvy = target.y - p.vel.y;
+  const dmag = Math.hypot(dvx, dvy);
+  if (dmag <= maxDv || dmag < 1e-9) {
+    p.vel = target;
+  } else {
+    p.vel = { x: p.vel.x + (dvx / dmag) * maxDv, y: p.vel.y + (dvy / dmag) * maxDv };
+  }
+  p.vel = clampLen(p.vel, maxSpeed);
 }
 
 /** Speed needed for a freely-rolling ball to travel `dist` before stopping. */

@@ -24,6 +24,19 @@ export const RULES = {
     radius: 12,
     /** Max speed in units/second. */
     maxSpeed: 200,
+    /**
+     * Acceleration (units/second²): how fast a player's velocity can change.
+     * Players ramp up to maxSpeed rather than snapping to it (~maxSpeed/accel
+     * seconds from rest), and can't reverse instantly — momentum.
+     */
+    accel: 900,
+    /**
+     * Extra cost of changing direction, 0..1. Acceleration is scaled down by up
+     * to this fraction as the desired direction opposes current motion, so a
+     * sharp turn — worst case a 180° — is harder than building speed in a
+     * straight line. 0 = turning is free; 0.5 = reversing has half the accel.
+     */
+    turnPenalty: 0.5,
   },
 
   ball: {
