@@ -118,7 +118,9 @@ async function handleCommand(cmd: { type: string; [k: string]: unknown }): Promi
       runAndBroadcast();
       break;
     case "resetParams":
-      overrides = {};
+      // Revert live edits to the last *saved* params (brain.params.json), not
+      // the brain's hardcoded defaults.
+      overrides = loadSavedOverrides();
       runAndBroadcast();
       break;
     case "saveParams": {
