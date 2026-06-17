@@ -2,51 +2,38 @@ import type { Brain, ParamValues, PlayerView, TeamIntent, Vec2, WorldView } from
 import { dist } from "@kr/brain-api";
 
 /**
- * TACTIC ("flow") — a nicer, possession-based side that still wins.
- *   - Keeper holds the goal and recovers the ball, then plays it short.
- *   - A deep playmaker offers a central outlet just behind the ball.
- *   - Two forwards make runs into the left/right channels ahead of the ball.
- *   - On the ball: shoot if close & clear, else pass forward to an open runner,
- *     else keep it with a safe pass under pressure, else carry forward.
- *   - The nearest man presses when we don't have it.
- *
- * The numbers below are tunable live from the coach control panel (params).
- * The knobs are fixed in code; turn the values to taste.
+ * TACTIC ("possession") — keep the ball, never shoot.
+ *   - Phase 1 (no ball): players 1 & 2 rush the ball; 3 & 4 drop to our goal.
+ *   - Phase 2 (we have it): the carrier passes to an open player whenever there
+ *     is a clean lane to one; otherwise he dribbles away from the nearest
+ *     opponents. Off the ball, everyone spreads to get open. Never shoots.
  */
 export const brain: Brain = {
-  name: "flow",
+  name: "possession",
   params: {
-    shootDistFrac: { default: 0.35, min: 0.1, max: 0.6, step: 0.01, label: "Shoot distance (×width)" },
     laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance" },
     laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than" },
-    keeperStandoff: { default: 60, min: 0, max: 300, step: 5, label: "Keeper standoff" },
-    enemyCloseDist: { default: 70, min: 0, max: 200, step: 5, label: "Pressure radius" },
-    playmakerDrop: { default: 90, min: 0, max: 300, step: 5, label: "Playmaker drop" },
-    forwardPush: { default: 150, min: 0, max: 500, step: 10, label: "Forward push" },
-    channelLeftY: { default: 0.28, min: 0.05, max: 0.5, step: 0.02, label: "Left channel" },
-    channelRightY: { default: 0.72, min: 0.5, max: 0.95, step: 0.02, label: "Right channel" },
+    openMin: { default: 60, min: 20, max: 160, step: 5, label: "Open space needed" },
+    evadeRange: { default: 220, min: 60, max: 400, step: 10, label: "Evade range" },
+    supportRadius: { default: 190, min: 80, max: 350, step: 10, label: "Support distance" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
-    const SHOOT_DIST_FRAC = p.shootDistFrac!;
     const LANE_CLEARANCE = p.laneClearance!;
     const LANE_IGNORE_NEAR = p.laneIgnoreNear!;
-    const KEEPER_STANDOFF = p.keeperStandoff!;
-    const ENEMY_CLOSE_DIST = p.enemyCloseDist!;
-    const PLAYMAKER_DROP = p.playmakerDrop!;
-    const FORWARD_PUSH = p.forwardPush!;
-    const CHANNEL_Y = [p.channelLeftY!, p.channelRightY!];
+    const OPEN_MIN = p.openMin!;
+    const EVADE_RANGE = p.evadeRange!;
+    const SUPPORT_RADIUS = p.supportRadius!;
 
     const intents: TeamIntent = {};
     const W = view.field.width;
     const H = view.field.height;
-    const enemyGoal: Vec2 = { x: view.targetGoalX, y: H / 2 };
-    const ownGoalCenter: Vec2 = { x: view.ownGoalX, y: H / 2 };
-    const clampX = (x: number) => Math.max(60, Math.min(W - 60, x));
+    const center: Vec2 = { x: W / 2, y: H / 2 };
+    const clampX = (x: number) => Math.max(20, Math.min(W - 20, x));
+    const clampY = (y: number) => Math.max(20, Math.min(H - 20, y));
 
     const squad = [...view.teammates].sort((a, b) => a.id - b.id);
-    const keeper = squad[0]!;
-    const playmaker = squad[1]!;
-    const forwards = squad.slice(2);
+    const rushers = squad.slice(0, 2); // players 1 & 2
+    const outlets = squad.slice(2); // players 3 & 4
     const carrier = view.teammates.find((t) => t.hasBall) ?? null;
     const weHaveBall = carrier !== null;
 
@@ -65,114 +52,103 @@ export const brain: Brain = {
         return Math.hypot(o.pos.x - cx, o.pos.y - cy) < LANE_CLEARANCE;
       });
     };
-    const pressured = (p: Vec2) =>
-      view.opponents.some((o) => dist(o.pos, p) < ENEMY_CLOSE_DIST);
-
-    // Closest teammate that's meaningfully ahead with an open lane — a short
-    // progressive pass that actually connects (not a long bomb to the farthest).
-    const forwardOutlet = (me: PlayerView): PlayerView | null => {
+    const openness = (pt: Vec2) =>
+      view.opponents.length ? Math.min(...view.opponents.map((o) => dist(o.pos, pt))) : Infinity;
+    const nearestOpp = (pt: Vec2): PlayerView | null => {
       let best: PlayerView | null = null;
       let bestD = Infinity;
-      for (const t of view.teammates) {
-        if (t.id === me.id) continue;
-        const ahead = (t.pos.x - me.pos.x) * view.attackDir;
-        if (ahead <= 50 || laneBlocked(me.pos, t.pos)) continue;
-        const d = dist(me.pos, t.pos);
+      for (const o of view.opponents) {
+        const d = dist(o.pos, pt);
         if (d < bestD) {
           bestD = d;
-          best = t;
+          best = o;
         }
       }
       return best;
     };
-    // Closest teammate with an open lane (a safe ball-retaining pass).
-    const safeOutlet = (me: PlayerView): PlayerView | null => {
+
+    // Most-open teammate with a clean lane (a safe pass), or null.
+    const openPassTarget = (me: PlayerView): PlayerView | null => {
       let best: PlayerView | null = null;
-      let bestD = Infinity;
+      let bestScore = OPEN_MIN; // must be at least this open to be worth a pass
       for (const t of view.teammates) {
         if (t.id === me.id) continue;
         if (laneBlocked(me.pos, t.pos)) continue;
-        const d = dist(me.pos, t.pos);
-        if (d < bestD) {
-          bestD = d;
+        const s = openness(t.pos);
+        if (s > bestScore) {
+          bestScore = s;
           best = t;
         }
       }
       return best;
     };
 
-    // On-ball: shoot, else pass forward, else keep it, else carry.
-    const carry = (me: PlayerView): TeamIntent[number] => {
-      if (dist(me.pos, enemyGoal) < W * SHOOT_DIST_FRAC && !laneBlocked(me.pos, enemyGoal)) {
-        return { kind: "shoot", to: enemyGoal };
+    // Dribble away from the nearest opponents (with a pull to center to avoid
+    // getting trapped against an edge).
+    const dribbleAway = (me: PlayerView): TeamIntent[number] => {
+      let ax = 0;
+      let ay = 0;
+      for (const o of view.opponents) {
+        const dx = me.pos.x - o.pos.x;
+        const dy = me.pos.y - o.pos.y;
+        const d = Math.hypot(dx, dy) || 1;
+        if (d < EVADE_RANGE) {
+          ax += dx / (d * d);
+          ay += dy / (d * d);
+        }
       }
-      const fwd = forwardOutlet(me);
-      if (fwd) return { kind: "pass", to: fwd.pos };
-      if (pressured(me.pos)) {
-        const safe = safeOutlet(me);
-        if (safe) return { kind: "pass", to: safe.pos };
+      let dx: number;
+      let dy: number;
+      if (ax === 0 && ay === 0) {
+        dx = center.x - me.pos.x;
+        dy = center.y - me.pos.y;
+      } else {
+        const L = Math.hypot(ax, ay);
+        const cx = center.x - me.pos.x;
+        const cy = center.y - me.pos.y;
+        const CL = Math.hypot(cx, cy) || 1;
+        dx = (ax / L) * 0.75 + (cx / CL) * 0.25;
+        dy = (ay / L) * 0.75 + (cy / CL) * 0.25;
       }
-      return { kind: "move", to: enemyGoal };
+      return { kind: "move", to: { x: me.pos.x + dx * 300, y: me.pos.y + dy * 300 } };
     };
 
-    // Who presses when we don't have the ball: the closest outfielder.
-    const outfield = [playmaker, ...forwards];
-    let presser = outfield[0]!;
-    let pressD = Infinity;
-    for (const p of outfield) {
-      const d = dist(p.pos, view.ball.pos);
-      if (d < pressD) {
-        pressD = d;
-        presser = p;
-      }
-    }
+    // Spread the given players around the ball to get open for a pass.
+    const supportSpread = (players: PlayerView[]) => {
+      const angles = [Math.PI / 2, (Math.PI * 7) / 6, (Math.PI * 11) / 6];
+      [...players].sort((a, b) => a.id - b.id).forEach((me, i) => {
+        const a = angles[i] ?? 0;
+        let tx = clampX(view.ball.pos.x + Math.cos(a) * SUPPORT_RADIUS);
+        let ty = clampY(view.ball.pos.y + Math.sin(a) * SUPPORT_RADIUS);
+        const no = nearestOpp({ x: tx, y: ty });
+        if (no && dist({ x: tx, y: ty }, no.pos) < OPEN_MIN) {
+          const dx = tx - no.pos.x;
+          const dy = ty - no.pos.y;
+          const d = Math.hypot(dx, dy) || 1;
+          tx = clampX(tx + (dx / d) * OPEN_MIN);
+          ty = clampY(ty + (dy / d) * OPEN_MIN);
+        }
+        intents[me.id] = { kind: "move", to: { x: tx, y: ty } };
+      });
+    };
 
-    // --- keeper ---------------------------------------------------------
-    if (keeper.hasBall) {
-      // Play short to the nearest open man (the dropping playmaker), who is
-      // coming toward the ball — not a long bomb to a forward running away.
-      const out = safeOutlet(keeper);
-      intents[keeper.id] = out ? { kind: "pass", to: out.pos } : carry(keeper);
+    if (carrier) {
+      // We hold it: carrier passes to an open man or dribbles away; rest support.
+      const tgt = openPassTarget(carrier);
+      intents[carrier.id] = tgt ? { kind: "pass", to: tgt.pos } : dribbleAway(carrier);
+      supportSpread(view.teammates.filter((t) => t.id !== carrier.id));
     } else {
-      const d = { x: view.ball.pos.x - ownGoalCenter.x, y: view.ball.pos.y - ownGoalCenter.y };
-      const len = Math.hypot(d.x, d.y) || 1;
-      intents[keeper.id] = {
-        kind: "move",
-        to: {
-          x: ownGoalCenter.x + (d.x / len) * KEEPER_STANDOFF,
-          y: ownGoalCenter.y + (d.y / len) * KEEPER_STANDOFF,
-        },
-      };
-    }
-
-    // --- playmaker ------------------------------------------------------
-    if (playmaker.hasBall) {
-      intents[playmaker.id] = carry(playmaker);
-    } else if (!weHaveBall && presser.id === playmaker.id) {
-      intents[playmaker.id] = { kind: "move", to: view.ball.pos };
-    } else {
-      intents[playmaker.id] = {
-        kind: "move",
-        to: { x: clampX(view.ball.pos.x - view.attackDir * PLAYMAKER_DROP), y: H / 2 },
-      };
-    }
-
-    // --- forwards -------------------------------------------------------
-    forwards.forEach((me, i) => {
-      if (me.hasBall) {
-        intents[me.id] = carry(me);
-      } else if (!weHaveBall && presser.id === me.id) {
-        intents[me.id] = { kind: "move", to: view.ball.pos };
-      } else {
-        intents[me.id] = {
+      // No possession — phase 1: players 1 & 2 rush, 3 & 4 drop to our goal.
+      rushers.forEach((r) => {
+        intents[r.id] = { kind: "move", to: view.ball.pos };
+      });
+      outlets.forEach((o, i) => {
+        intents[o.id] = {
           kind: "move",
-          to: {
-            x: clampX(view.ball.pos.x + view.attackDir * FORWARD_PUSH),
-            y: H * (CHANNEL_Y[i] ?? 0.5),
-          },
+          to: { x: view.ownGoalX + view.attackDir * 40, y: H * (i === 0 ? 0.35 : 0.65) },
         };
-      }
-    });
+      });
+    }
 
     for (const t of view.teammates) if (!(t.id in intents)) intents[t.id] = { kind: "idle" };
     return intents;
