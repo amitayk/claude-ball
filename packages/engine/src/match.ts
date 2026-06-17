@@ -1,4 +1,5 @@
-import type { Brain, TeamIntent } from "@kr/brain-api";
+import type { Brain, ParamValues, TeamIntent } from "@kr/brain-api";
+import { resolveParams } from "@kr/brain-api";
 import { RULES } from "./constants.js";
 import { kickoff, type WorldState } from "./world.js";
 import { step, viewFor } from "./step.js";
@@ -17,6 +18,8 @@ export interface MatchResult {
     ticks: number;
     dt: number;
     field: { width: number; height: number; goalHeight: number };
+    /** Resolved param values each side played with. */
+    params: { home: ParamValues; away: ParamValues };
   };
   score: { home: number; away: number };
   frames: ReplayFrame[];
@@ -40,9 +43,14 @@ function snapshot(world: WorldState): ReplayFrame {
 const round = (n: number): number => Math.round(n * 100) / 100;
 
 /** Call a brain defensively: any throw becomes "no intents" (all idle). */
-function safeDecide(brain: Brain, world: WorldState, side: "home" | "away"): TeamIntent {
+function safeDecide(
+  brain: Brain,
+  world: WorldState,
+  side: "home" | "away",
+  params: ParamValues,
+): TeamIntent {
   try {
-    return brain.decide(viewFor(world, side)) ?? {};
+    return brain.decide(viewFor(world, side), params) ?? {};
   } catch (err) {
     if (world.tick === 0) {
       console.error(`[${side}] brain threw on tick 0:`, err);
@@ -54,6 +62,9 @@ function safeDecide(brain: Brain, world: WorldState, side: "home" | "away"): Tea
 export interface RunOptions {
   seed?: number;
   ticks?: number;
+  /** Param overrides merged over each brain's declared defaults. */
+  homeParams?: ParamValues;
+  awayParams?: ParamValues;
 }
 
 /** Run a full deterministic match between two brains and record a replay. */
@@ -61,12 +72,15 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
   const seed = opts.seed ?? 1;
   const ticks = opts.ticks ?? Math.round(RULES.matchSeconds / RULES.dt);
 
+  const homeParams = resolveParams(home.params, opts.homeParams);
+  const awayParams = resolveParams(away.params, opts.awayParams);
+
   let world = kickoff();
   const frames: ReplayFrame[] = [snapshot(world)];
 
   for (let i = 0; i < ticks; i++) {
-    const homeIntents = safeDecide(home, world, "home");
-    const awayIntents = safeDecide(away, world, "away");
+    const homeIntents = safeDecide(home, world, "home", homeParams);
+    const awayIntents = safeDecide(away, world, "away", awayParams);
     world = step(world, homeIntents, awayIntents);
     frames.push(snapshot(world));
   }
@@ -78,6 +92,7 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
       ticks,
       dt: RULES.dt,
       field: { ...RULES.field },
+      params: { home: homeParams, away: awayParams },
     },
     score: { ...world.score },
     frames,

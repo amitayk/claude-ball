@@ -1,31 +1,42 @@
 # Your cladu-regel team
 
-You design the tactics. Your AI assistant writes the code — and **only** the
-code (read [`CLAUDE.md`](CLAUDE.md); that constraint is the game).
+You're the **coach**: you design the tactics. Your AI assistant writes the code —
+and **only** the code (read [`CLAUDE.md`](CLAUDE.md); that constraint is the
+game). The dots on the pitch are your **players**.
 
-This folder is a self-contained project. Open your AI coding session **here**
-(`cd` into this folder) so the `CLAUDE.md` rules are in effect.
+Open your AI coding session **in this folder** so `CLAUDE.md` is in effect.
+
+## One command
+
+```bash
+npm run coach
+```
+
+Opens your workbench at **http://localhost:5177**:
+
+- **The field** — watch your brain (blue) play the opponent (orange), with
+  playback controls and a coordinate axis.
+- **Match** — pick the opponent and seed, re-run on demand.
+- **Control panel** — sliders for the params your assistant exposed. Drag one and
+  the match re-runs instantly. **Save + commit** to keep the values.
+- **Versions** — every commit to your brain. **Run** an old version against the
+  current opponent, or **roll back** to it.
+
+It **hot-reloads**: edit `src/brain.ts` (or have your assistant edit it) and the
+match re-runs automatically — no terminal commands to see changes.
 
 ## Write your brain
 
-Edit [`src/brain.ts`](src/brain.ts). Describe the behavior you want to your AI
-assistant in plain words ("the closest defender marks their striker", "pass to
-the most open teammate ahead of me") and have it implement it.
+Edit [`src/brain.ts`](src/brain.ts). Describe the behavior you want in plain words
+("the closest defender marks their striker", "pass to the most open teammate
+ahead of me", "expose the pressing distance as a knob") and have your assistant
+implement it. Beat `chaser`, then `formation`, then your friends.
 
-## Play
+## Also available
 
 ```bash
-npm run match                      # your brain (home) vs the built-in chaser
-npm run match -- formation         # vs the built-in formation brain
-npm run match -- formation --seed 9 --out viewer/replay.json
-npm run viewer                     # watch viewer/replay.json at localhost:5177
-
-npm run play                       # shortcut: run a match + open the viewer
+npm run match -- formation --seed 9   # headless match, prints the score
+npm run match -- formation --out viewer/replay.json && npm run viewer
 ```
 
-Flags: `--seed <n>`, `--ticks <n>`, `--out <path>`, `--me <path>` (default
-`./src/brain.ts`). Same seed ⇒ same match, every time.
-
-Beat `chaser`, then `formation`, then your friends.
-
-See the repo root `README.md` for the full `WorldView` / `Intent` API reference.
+See the repo root `README.md` for the full `WorldView` / `Intent` / params API.

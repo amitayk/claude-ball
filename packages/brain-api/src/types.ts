@@ -1,4 +1,5 @@
 import type { Vec2 } from "./vec.js";
+import type { ParamsSpec, ParamValues } from "./params.js";
 
 /** Which side of the pitch a team plays. "home" defends the left goal (x=0). */
 export type Side = "home" | "away";
@@ -73,6 +74,15 @@ export type TeamIntent = Record<number, Intent>;
 export interface Brain {
   /** Optional human-readable name shown in match output and replays. */
   readonly name?: string;
-  /** Called once per tick. Return an Intent for each controlled player. */
-  decide(view: WorldView): TeamIntent;
+  /**
+   * Optional tunable parameters. Each becomes a slider in the coach control
+   * panel; the resolved values are passed to `decide` as its second argument.
+   */
+  readonly params?: ParamsSpec;
+  /**
+   * Called once per tick. Return an Intent for each controlled player.
+   * `params` holds the resolved param values (defaults merged with any coach
+   * overrides). Brains that declare no params can ignore it.
+   */
+  decide(view: WorldView, params: ParamValues): TeamIntent;
 }

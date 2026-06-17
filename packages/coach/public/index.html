@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cladu-regel · coach</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">⚽ cladu-regel <span class="muted">coach</span></div>
+      <div id="scoreline" class="scoreline">
+        <span class="home" id="homeName">you</span>
+        <span class="score" id="score">0 – 0</span>
+        <span class="away" id="awayName">opponent</span>
+      </div>
+      <div id="conn" class="conn">connecting…</div>
+    </header>
+
+    <main>
+      <section class="stage">
+        <div id="tag" class="tag">current</div>
+        <canvas id="pitch" width="1050" height="680"></canvas>
+        <div class="playback">
+          <button id="playpause">⏸</button>
+          <input id="scrub" type="range" min="0" max="0" value="0" />
+          <span id="time" class="muted">0.0s</span>
+          <select id="speed">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+          <span id="possession" class="pill">loose ball</span>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="card">
+          <h2>Match</h2>
+          <label class="row">
+            <span>Opponent</span>
+            <select id="opponent"></select>
+          </label>
+          <label class="row">
+            <span>Seed</span>
+            <input id="seed" type="number" min="1" value="1" />
+          </label>
+          <button id="rerun" class="primary">Re-run match</button>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>Control panel</h2>
+            <div class="card-actions">
+              <button id="resetParams" class="ghost">Reset</button>
+              <button id="saveParams" class="primary">Save + commit</button>
+            </div>
+          </div>
+          <p class="muted small">Turn the knobs your assistant coded. Changes re-run instantly.</p>
+          <div id="params"></div>
+        </div>
+
+        <div class="card">
+          <h2>Versions</h2>
+          <p class="muted small">Each commit touching your brain. Run an old one, or roll back.</p>
+          <ul id="versions" class="versions"></ul>
+        </div>
+      </aside>
+    </main>
+
+    <div id="error" class="error hidden"></div>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

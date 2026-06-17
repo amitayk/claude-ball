@@ -9,6 +9,7 @@
     "templates/brain-starter"
   ],
   "scripts": {
+    "coach": "npm run coach --workspace @kr/brain-starter",
     "match": "tsx packages/runner/src/cli.ts",
     "viewer": "tsx packages/viewer/serve.ts",
     "demo": "npm run match -- formation chaser --seed 7 --out packages/viewer/replay.json && npm run viewer",

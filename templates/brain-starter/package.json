@@ -5,6 +5,7 @@
   "type": "module",
   "description": "Your cladu-regel team brain. You design the tactics; your AI assistant only codes.",
   "scripts": {
+    "coach": "tsx ../../packages/coach/src/server.ts",
     "match": "tsx play.ts",
     "viewer": "tsx viewer/serve.ts",
     "play": "tsx play.ts --out viewer/replay.json && tsx viewer/serve.ts",
@@ -13,6 +14,7 @@
   "dependencies": {
     "@kr/brain-api": "0.1.0",
     "@kr/brains": "0.1.0",
+    "@kr/coach": "0.1.0",
     "@kr/engine": "0.1.0"
   },
   "devDependencies": {

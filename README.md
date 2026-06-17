@@ -1,28 +1,42 @@
 # cladu-regel ⚽
 
-A vibe-coding soccer game. You design a team's **brain** — its tactics — and your
-AI assistant writes the code. The twist: **the human owns all the thinking; the
-AI is only allowed to code** (see [`templates/brain-starter/CLAUDE.md`](templates/brain-starter/CLAUDE.md)).
+A vibe-coding soccer game. As a **coach**, you design a team's **brain** — its
+tactics — and your AI assistant writes the code. The twist: **the coach owns all
+the thinking; the AI is only allowed to code** (see
+[`templates/brain-starter/CLAUDE.md`](templates/brain-starter/CLAUDE.md)).
 
 Two team brains play a deterministic 2D match. Whoever designed the smarter
-strategy wins.
+strategy wins. The dots on the pitch are **players**.
 
-> **Status: Phase 1** — deterministic engine, local match runner, and replay
-> viewer are working. Server/ladder (Phase 4) is not built yet.
+> **Status: Phase 2** — deterministic engine, headless runner, and a live
+> **coach workbench** (field + control panel + version history, hot-reloads on
+> edit). Server/ladder (Phase 4) is not built yet.
 
 ## Quick start
 
 ```bash
 npm install
-npm run demo          # runs formation vs chaser and opens the viewer
+npm run coach         # opens the coach workbench for the starter brain
 ```
 
-Or step by step:
+The workbench (http://localhost:5177) is the main way to play: watch the match,
+swap opponents, tune params with live sliders, and browse/roll back versions —
+all updating instantly as you (or your assistant) edit `src/brain.ts`. Open your
+AI session in `templates/brain-starter/` so its `CLAUDE.md` is in effect.
+
+### Headless matches
 
 ```bash
-npm run match -- formation chaser --seed 7 --out packages/viewer/replay.json
+# built-in brains (by name): chaser, formation
+npm run match -- formation chaser
+# your own brain (by path) vs a built-in, write a replay
+npm run match -- ./packages/brains/src/chaser.ts formation --seed 3 --out packages/viewer/replay.json
 npm run viewer        # http://localhost:5177
+
+# flags: --seed <n>  --ticks <n>  --out <path>
 ```
+
+Same `(seed, home, away, params)` ⇒ exact same match, every time.
 
 ### Running brains
 
@@ -53,7 +67,8 @@ rendering and I/O live outside it.
 | [`@kr/brains`](packages/brains) | Built-in sample brains (`chaser`, `formation`). |
 | [`@kr/runner`](packages/runner) | CLI: load two brains, run a match, write a replay. |
 | [`@kr/viewer`](packages/viewer) | Zero-build browser replay player (canvas). |
-| [`templates/brain-starter`](templates/brain-starter) | What a player clones to write their own brain. |
+| [`@kr/coach`](packages/coach) | Live coach workbench: dev server (SSE + hot reload), field, control panel, git versions UI. |
+| [`templates/brain-starter`](templates/brain-starter) | What a coach clones to write their own brain. |
 
 The boundary that matters: **a brain only ever receives a read-only `WorldView`
 and returns `Intent`s.** It cannot touch engine state. That keeps matches
@@ -64,9 +79,15 @@ deterministic and cheat-resistant regardless of how a brain is written.
 ```ts
 interface Brain {
   name?: string;
-  decide(view: WorldView): TeamIntent;   // called once per tick
+  params?: ParamsSpec;                            // tunable knobs (sliders in the panel)
+  decide(view: WorldView, params: ParamValues): TeamIntent;  // called once per tick
 }
 ```
+
+Declaring `params` exposes named values (`{ default, min, max, step, label }`) as
+sliders in the coach control panel; the resolved values arrive as the second
+argument to `decide`. Brains that declare none can ignore it. The *knobs* are
+agreed with your assistant; the *values* are the coach's to turn.
 
 Each tick you get a `WorldView` and return one `Intent` per player you control:
 
