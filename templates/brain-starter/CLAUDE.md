@@ -117,8 +117,11 @@ interface Brain {
   or ~3s pass. You're taking the kickoff when
   `phase === "kickoff" && kickoffSide === side`. After a goal, the team that
   conceded takes the next kickoff. **You must play the ball back at kickoff:** a
-  pass/shoot whose direction is toward the enemy half is ignored — aim backward
-  or sideways, and a legal backward kick opens play.
+  pass/shoot toward the enemy half is ignored, and the carrier can't dribble
+  toward the enemy until the ball leaves the circle — go backward or sideways. A
+  legal backward kick opens play. The `kickoffBackPass(view)` helper returns a
+  ready-made legal kickoff (carrier passes back, others hold) or `null` when it
+  isn't your kickoff; call it at the top of `decide` and return it if non-null.
 - `score`, `tick`, `dt`.
 
 ### Params

@@ -1,5 +1,5 @@
 import type { Brain, ParamValues, PlayerView, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
-import { dist } from "@kr/brain-api";
+import { dist, kickoffBackPass } from "@kr/brain-api";
 
 /**
  * DEBUG TACTIC ("blitz") — assistant-written, for engine debugging.
@@ -21,6 +21,9 @@ export const blitz: Brain = {
     strikerGap: { default: 200, min: 50, max: 400, step: 5, label: "Striker gap from goal", help: "How far in front of the enemy goal the striker waits. Higher = striker holds farther from goal." },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
+    const ko = kickoffBackPass(view);
+    if (ko) return ko;
+
     const SHOOT_DIST_FRAC = p.shootDistFrac!;
     const LANE_CLEARANCE = p.laneClearance!;
     const KEEPER_STANDOFF = p.keeperStandoff!;

@@ -1,5 +1,5 @@
 import type { Brain, ParamValues, PlayerView, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
-import { dist } from "@kr/brain-api";
+import { dist, kickoffBackPass } from "@kr/brain-api";
 
 /**
  * TACTIC ("possession") — keep the ball, never shoot.
@@ -28,6 +28,9 @@ export const brain: Brain = {
     shotCornerFrac: { default: 0.8, min: 0, max: 1, step: 0.05, label: "Shot corner (×goal half)", help: "How far toward the post shots aim. Higher = aims closer to the post (more corner, riskier)." },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
+    const ko = kickoffBackPass(view);
+    if (ko) return ko;
+
     const LANE_CLEARANCE = p.laneClearance!;
     const LANE_IGNORE_NEAR = p.laneIgnoreNear!;
     const CORNER_RUN_SEC = p.cornerRunSec!;

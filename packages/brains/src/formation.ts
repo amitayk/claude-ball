@@ -1,5 +1,5 @@
 import type { Brain, PlayerView, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
-import { dist } from "@kr/brain-api";
+import { dist, kickoffBackPass } from "@kr/brain-api";
 
 /**
  * STRATEGY (human-designed):
@@ -12,6 +12,9 @@ import { dist } from "@kr/brain-api";
 export const formation: Brain = {
   name: "formation",
   decide(view: WorldView): TeamIntent {
+    const ko = kickoffBackPass(view);
+    if (ko) return ko;
+
     const intents: TeamIntent = {};
     const { width, height } = view.field;
     const goal: Vec2 = { x: view.targetGoalX, y: height / 2 };

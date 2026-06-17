@@ -1,5 +1,5 @@
 import type { Brain, ParamValues, PlayerView, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
-import { dist } from "@kr/brain-api";
+import { dist, kickoffBackPass } from "@kr/brain-api";
 
 /**
  * TACTIC ("flow") — a nicer, possession-based side that still wins.
@@ -27,6 +27,9 @@ export const flow: Brain = {
     channelRightY: { default: 0.72, min: 0.5, max: 0.95, step: 0.02, label: "Right channel", help: "Vertical lane for the right forward (fraction of height). Higher = positions the right forward lower." },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
+    const ko = kickoffBackPass(view);
+    if (ko) return ko;
+
     const SHOOT_DIST_FRAC = p.shootDistFrac!;
     const LANE_CLEARANCE = p.laneClearance!;
     const LANE_IGNORE_NEAR = p.laneIgnoreNear!;

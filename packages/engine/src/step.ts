@@ -300,6 +300,21 @@ export function step(
     if (kicked && p.side === world.kickoffSide) kickingSideKicked = true;
   }
 
+  // Kickoff: the carrier may not dribble toward the enemy until the ball has
+  // left the centre circle — it must go back or sideways out. Zero any
+  // enemy-ward velocity while the carrier is still inside the circle.
+  if (world.phase === "kickoff" && world.ball.ownerId !== null) {
+    const owner = world.players.find((p) => p.id === world.ball.ownerId);
+    if (owner && owner.side === world.kickoffSide) {
+      const cx = RULES.field.width / 2;
+      const cy = RULES.field.height / 2;
+      if (Math.hypot(owner.pos.x - cx, owner.pos.y - cy) <= RULES.field.centerRadius) {
+        const attackDir = owner.side === "home" ? 1 : -1;
+        if (owner.vel.x * attackDir > 0) owner.vel.x = 0;
+      }
+    }
+  }
+
   // 3. Integrate physics.
   integratePlayers(world);
   if (world.phase === "kickoff") enforceKickoffExclusion(world);
