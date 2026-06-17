@@ -24,6 +24,7 @@ export const brain: Brain = {
     wideOpenMinDist: { default: 150, min: 0, max: 500, step: 10, label: "Wide-open min pass length" },
     finishXFrac: { default: 0.2, min: 0.05, max: 0.5, step: 0.01, label: "Finish zone (×width)" },
     centralBandFrac: { default: 0.6, min: 0.2, max: 1, step: 0.05, label: "Central band (Y)" },
+    defStandoff: { default: 120, min: 20, max: 400, step: 10, label: "Blocker standoff from goal" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
     const LANE_CLEARANCE = p.laneClearance!;
@@ -36,6 +37,7 @@ export const brain: Brain = {
     const FINISH_X_FRAC = p.finishXFrac!;
     const CENTRAL_BAND_FRAC = p.centralBandFrac!;
     const POST_INSET = 8; // aim this far inside the post
+    const DEF_STANDOFF = p.defStandoff!;
 
     const intents: TeamIntent = {};
     const W = view.field.width;
@@ -57,9 +59,7 @@ export const brain: Brain = {
     trackedOwner = owner;
     const held = (view.tick - possessionStartTick) * view.dt;
 
-    const squad = [...view.teammates].sort((a, b) => a.id - b.id);
-    const rushers = squad.slice(0, 2); // players 1 & 2
-    const outlets = squad.slice(2); // players 3 & 4
+    const ownGoalCenter: Vec2 = { x: view.ownGoalX, y: H / 2 };
     const carrier = view.teammates.find((t) => t.hasBall) ?? null;
 
     // --- helpers --------------------------------------------------------
@@ -247,15 +247,38 @@ export const brain: Brain = {
             : { kind: "move", to: openFarFrom(me, view.ball.pos) };
       });
     } else {
-      // A loose ball to win, or the opponent has it: 1 & 2 rush, 3 & 4 hold goal.
-      rushers.forEach((r) => {
-        intents[r.id] = { kind: "move", to: view.ball.pos };
-      });
-      outlets.forEach((o, i) => {
-        intents[o.id] = {
-          kind: "move",
-          to: { x: view.ownGoalX + view.attackDir * 40, y: H * (i === 0 ? 0.35 : 0.65) },
-        };
+      // Enemy possession (or a loose enemy ball): the man closest to our goal
+      // stands between the ball and the goal — and goes to intercept a shot —
+      // while everyone else chases the ball holder.
+      const blocker = view.teammates.reduce((a, b) =>
+        dist(a.pos, ownGoalCenter) <= dist(b.pos, ownGoalCenter) ? a : b,
+      );
+      const holder = view.opponents.find((o) => o.id === view.ball.ownerId);
+      const chaseTarget = holder ? holder.pos : view.ball.pos;
+      const bv = view.ball.vel;
+      const shotAtUs =
+        view.ball.ownerId === null &&
+        Math.hypot(bv.x, bv.y) > 40 &&
+        (view.ownGoalX - view.ball.pos.x) * bv.x > 0; // moving toward our goal
+      view.teammates.forEach((me) => {
+        if (me.id === blocker.id) {
+          if (shotAtUs) {
+            intents[me.id] = { kind: "move", to: view.ball.pos }; // intercept the shot
+          } else {
+            const dx = view.ball.pos.x - ownGoalCenter.x;
+            const dy = view.ball.pos.y - ownGoalCenter.y;
+            const len = Math.hypot(dx, dy) || 1;
+            intents[me.id] = {
+              kind: "move",
+              to: {
+                x: ownGoalCenter.x + (dx / len) * DEF_STANDOFF,
+                y: ownGoalCenter.y + (dy / len) * DEF_STANDOFF,
+              },
+            };
+          }
+        } else {
+          intents[me.id] = { kind: "move", to: chaseTarget };
+        }
       });
     }
 
