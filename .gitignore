@@ -4,6 +4,7 @@ dist/
 .DS_Store
 packages/viewer/replay.json
 templates/brain-starter/viewer/replay.json
+laika/viewer/replay.json
 *.replay.json
 .kr-versions/
 notesamitay.txt

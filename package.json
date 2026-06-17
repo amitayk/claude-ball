@@ -6,7 +6,8 @@
   "description": "Vibe-coding soccer: humans design the brain, Claude only writes the code.",
   "workspaces": [
     "packages/*",
-    "templates/brain-starter"
+    "templates/brain-starter",
+    "laika"
   ],
   "scripts": {
     "coach": "npm run coach --workspace @kr/brain-starter",
