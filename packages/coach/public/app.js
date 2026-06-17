@@ -14,6 +14,10 @@ let acc = 0;
 let last = performance.now();
 let paramSpec = {};
 let paramValues = {};
+// Which side the local coach controls ("home" | "away" | null). Only used to
+// annotate "(you)"; nothing about left/right/own-goal is tied to it, so a PvP
+// spectator (you = null) renders the same labels minus the marker.
+let youSide = null;
 
 // ── commands ────────────────────────────────────────────────────────────────
 async function post(cmd) {
@@ -142,6 +146,7 @@ const escape = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", "
 function applyReplay(payload) {
   replay = payload.replay;
   meta = replay.meta;
+  youSide = payload.you ?? null;
   canvas.width = meta.field.width;
   canvas.height = meta.field.height;
   $("scrub").max = String(replay.frames.length - 1);
@@ -195,12 +200,21 @@ function drawPitch() {
   drawLabels(W, H, goalHeight);
 }
 
-// Direction labels: which way is your goal vs the enemy goal, and what the
-// axes mean. You (blue/home) always defend the LEFT goal and attack RIGHT.
+// Display label for a side: its team name, plus a "(you)" marker only when the
+// local coach controls that side. Side-agnostic — no "your/enemy" baked in.
+function teamLabel(side) {
+  const name = meta?.teams?.[side] ?? side;
+  return side === youSide ? `${name} (you)` : name;
+}
+
+// Field labels reference each TEAM (by name + the goal it defends + the way it
+// attacks), never "your/enemy". The home slot defends the x=0 goal and attacks
+// toward +x; the away slot is the mirror. LEFT/RIGHT/TOP/BOTTOM below are
+// coordinate facts about the pitch, not team ownership.
 function drawLabels(W, H, goalHeight) {
   const gTop = (H - goalHeight) / 2;
   ctx.save();
-  // goal-ownership tints
+  // each goal tinted in the colour of the team that DEFENDS it
   ctx.globalAlpha = 0.16;
   ctx.fillStyle = COLORS.home; ctx.fillRect(4, gTop, 22, goalHeight);
   ctx.fillStyle = COLORS.away; ctx.fillRect(W - 26, gTop, 22, goalHeight);
@@ -209,19 +223,19 @@ function drawLabels(W, H, goalHeight) {
   ctx.textBaseline = "top";
   ctx.font = "bold 15px ui-monospace, monospace";
   ctx.fillStyle = COLORS.home; ctx.textAlign = "left";
-  ctx.fillText("◀ YOUR GOAL · defend", 34, 26);
+  ctx.fillText(`${teamLabel("home")}  attacks ▶`, 34, 26);
   ctx.fillStyle = COLORS.away; ctx.textAlign = "right";
-  ctx.fillText("attack · ENEMY GOAL ▶", W - 16, 26);
+  ctx.fillText(`◀ attacks  ${teamLabel("away")}`, W - 16, 26);
 
   ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.font = "12px ui-monospace, monospace";
   ctx.textAlign = "center"; ctx.textBaseline = "top";
-  ctx.fillText("TOP (y = 0)", W / 2, 26);
+  ctx.fillText("y = 0 (top edge)", W / 2, 26);
   ctx.textBaseline = "bottom";
-  ctx.fillText("BOTTOM (y = " + H + ")   ·   x → right   ·   y ↓ down", W / 2, H - 10);
+  ctx.fillText("y = " + H + " (bottom edge)   ·   x → right   ·   y ↓ down", W / 2, H - 10);
   ctx.textBaseline = "middle";
-  ctx.textAlign = "left"; ctx.fillText("LEFT (x = 0)", 30, H / 2);
-  ctx.textAlign = "right"; ctx.fillText("RIGHT (x = " + W + ")", W - 30, H / 2);
+  ctx.textAlign = "left"; ctx.fillText("x = 0", 30, H / 2);
+  ctx.textAlign = "right"; ctx.fillText("x = " + W, W - 30, H / 2);
   ctx.restore();
 }
 
@@ -246,8 +260,8 @@ function drawFrame(f) {
   $("time").textContent = (f.t * meta.dt).toFixed(1) + "s";
   $("scrub").value = String(frameIdx);
   const poss = $("possession");
-  poss.textContent = owner === "home" ? "you on the ball" : owner === "away" ? "opponent on the ball" : "loose ball";
-  poss.style.color = owner === "home" ? COLORS.home : owner === "away" ? COLORS.away : "var(--muted)";
+  poss.textContent = owner ? `${teamLabel(owner)} on the ball` : "loose ball";
+  poss.style.color = owner ? COLORS[owner] : "var(--muted)";
 }
 
 function loop(now) {

@@ -108,11 +108,16 @@ Rules: 4 players per side, ~90s matches at 30 ticks/sec. A player controls the
 ball within `controlDistance`; kicks have a short cooldown. See
 [`packages/engine/src/constants.ts`](packages/engine/src/constants.ts).
 
-### Determinism rules for brains
+### Rules for brains
 
+- **Be side-agnostic.** The same brain must work on either slot, so never
+  hardcode left/right, `"home"`/`"away"`, or a literal x. Orient only by
+  `attackDir`, `targetGoalX`, `ownGoalX`, `teammates`/`opponents`. (PvP will
+  place brains on both sides; "left/right" describe the pitch coordinates, never
+  a team.)
 - Never use `Math.random()` — matches must be reproducible.
 - Don't mutate the `WorldView` (it's frozen by convention; treat it as read-only).
-- `decide()` should be a pure function of the view.
+- `decide()` should be a pure function of `(view, params)`.
 
 ## Roadmap
 

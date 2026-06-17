@@ -28,6 +28,13 @@ let lastError: string | null = null;
 
 const clients = new Set<ServerResponse>();
 
+/**
+ * The side the local coach controls. In this solo workbench the coach is always
+ * the home slot; sent to the client so it can mark "(you)" without tying any
+ * left/right or goal semantics to it. For PvP/spectator this becomes dynamic.
+ */
+const YOU_SIDE = "home";
+
 function loadSavedOverrides(): ParamValues {
   try {
     if (existsSync(paramsPath)) return JSON.parse(readFileSync(paramsPath, "utf8")) as ParamValues;
@@ -64,7 +71,7 @@ function pushAll(res: ServerResponse): void {
   send(res, "status", statusPayload());
   send(res, "params", paramsPayload());
   send(res, "versions", git.listVersions(cwd, ["src"]));
-  if (lastReplay) send(res, "replay", { replay: lastReplay, tag: "current" });
+  if (lastReplay) send(res, "replay", { replay: lastReplay, tag: "current", you: YOU_SIDE });
   if (lastError) send(res, "error", { message: lastError });
 }
 
@@ -80,7 +87,7 @@ function runAndBroadcast(tag = "current"): void {
   if (!coachBrain || !opponentBrain) return;
   lastReplay = runMatch(coachBrain, opponentBrain, { seed, homeParams: overrides });
   lastError = null;
-  broadcast("replay", { replay: lastReplay, tag });
+  broadcast("replay", { replay: lastReplay, tag, you: YOU_SIDE });
   broadcast("status", statusPayload());
   broadcast("params", paramsPayload());
 }
@@ -165,7 +172,7 @@ async function previewVersion(sha: string): Promise<void> {
     const oldBrain = await importBrainFile(tmp);
     if (!opponentBrain) await reloadOpponent();
     const replay = runMatch(oldBrain, opponentBrain!, { seed, homeParams: oldOverrides });
-    broadcast("replay", { replay, tag: `version ${sha.slice(0, 7)}` });
+    broadcast("replay", { replay, tag: `version ${sha.slice(0, 7)}`, you: YOU_SIDE });
   } catch (err) {
     broadcast("error", { message: `version ${sha.slice(0, 7)} failed: ${String(err)}` });
   }

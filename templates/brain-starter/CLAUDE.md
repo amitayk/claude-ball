@@ -63,17 +63,20 @@ brain only observes (`WorldView`) and commands (`Intent`).
 Tunable values go in the brain's `params` block; the resolved values arrive as
 the second argument to `decide`. The coach turns them live in the control panel.
 
-## Pitch orientation (shared by you, the coach, and the field labels)
+## Pitch orientation & side-agnostic code
 
-- Origin `(0, 0)` is the **top-left** corner.
+- Origin `(0, 0)` is the **top-left** corner of the field.
 - **x** increases to the **right** (`0 → field.width`). **y** increases
   **downward** (`0 → field.height`). On screen: *up* = smaller y, *down* = larger y.
-- In the coach's view, the team you control is **blue** on the **left**: it
-  **defends the LEFT goal** (`ownGoalX`) and **attacks the RIGHT goal**
-  (`targetGoalX`). The opponent is orange on the right.
-- A brain may play either side, so **never hardcode left/right or a literal x**.
-  Steer by `attackDir` (+1 = attack toward larger x), `targetGoalX`, and
-  `ownGoalX`. This is a mechanical correctness rule, not a tactic.
+- **The same brain must work on either side of the pitch.** Today's workbench
+  happens to render the coach's team in blue on the left, but that is only a
+  display convention — in PvP a brain may be placed on the right instead. So
+  **never hardcode left/right, "home"/"away", or a literal x.**
+- Always orient by the perspective-relative fields the view gives you:
+  `attackDir` (+1 if this team attacks toward larger x, −1 otherwise),
+  `targetGoalX` (the goal to attack), `ownGoalX` (the goal to defend), and
+  `teammates` / `opponents`. Writing the brain this way is a mechanical
+  correctness rule, not a tactic.
 
 ## The coach's workbench
 

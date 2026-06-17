@@ -1,7 +1,12 @@
 import type { Vec2 } from "./vec.js";
 import type { ParamsSpec, ParamValues } from "./params.js";
 
-/** Which side of the pitch a team plays. "home" defends the left goal (x=0). */
+/**
+ * A team slot, not a perspective. `home` is simply the team defending the x=0
+ * goal (and attacking +x); `away` is the mirror. Neither means "you" — your
+ * brain may be assigned either slot, so orient by the WorldView's `attackDir` /
+ * `targetGoalX` / `ownGoalX`, never by this label or a literal x.
+ */
 export type Side = "home" | "away";
 
 /** Read-only view of a single player, as seen by a brain each tick. */
