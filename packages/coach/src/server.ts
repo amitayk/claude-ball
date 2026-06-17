@@ -35,6 +35,10 @@ const clients = new Set<ServerResponse>();
  */
 const YOU_SIDE = "home";
 
+/** Per-brain cumulative compute budget for a match (ms). Generous — only a
+ *  pathologically slow brain trips it. Tunable via env. */
+const BRAIN_BUDGET_MS = Number(process.env.KR_BRAIN_BUDGET_MS ?? 3000);
+
 function loadSavedOverrides(): ParamValues {
   try {
     if (existsSync(paramsPath)) return JSON.parse(readFileSync(paramsPath, "utf8")) as ParamValues;
@@ -85,11 +89,13 @@ async function reloadOpponent(): Promise<void> {
 
 function runAndBroadcast(tag = "current"): void {
   if (!coachBrain || !opponentBrain) return;
-  lastReplay = runMatch(coachBrain, opponentBrain, { seed, homeParams: overrides });
-  lastError = null;
+  lastReplay = runMatch(coachBrain, opponentBrain, { seed, homeParams: overrides, brainBudgetMs: BRAIN_BUDGET_MS });
+  const fault = lastReplay.meta.fault;
+  lastError = fault ? `${fault.side === YOU_SIDE ? "your brain" : "opponent"} ${fault.reason}` : null;
   broadcast("replay", { replay: lastReplay, tag, you: YOU_SIDE });
   broadcast("status", statusPayload());
   broadcast("params", paramsPayload());
+  if (lastError) broadcast("error", { message: lastError });
 }
 
 /** Reload code from disk and re-run; report compile/runtime errors to the UI. */

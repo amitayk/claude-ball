@@ -1,5 +1,18 @@
-/** Fixed simulation constants. All distances in field units, time in seconds. */
-export const RULES = {
+/** Recursively freeze an object so it (and its nested objects) can't be mutated. */
+function deepFreeze<T>(obj: T): T {
+  for (const key of Object.keys(obj as object)) {
+    const v = (obj as Record<string, unknown>)[key];
+    if (v && typeof v === "object") deepFreeze(v);
+  }
+  return Object.freeze(obj);
+}
+
+/**
+ * Fixed simulation constants. All distances in field units, time in seconds.
+ * Deep-frozen: a brain can `import` this but cannot mutate the rulebook to gain
+ * an edge (an attempted write throws in strict mode).
+ */
+export const RULES = deepFreeze({
   field: {
     width: 1050,
     height: 680,
@@ -93,6 +106,6 @@ export const RULES = {
   stealMargin: 6,
   /** Seconds a player must wait between kicks. */
   kickCooldown: 0.35,
-} as const;
+} as const);
 
 export type Rules = typeof RULES;

@@ -9,6 +9,12 @@ const clampLen = (v: Vec2, max: number): Vec2 => {
   const l = Math.hypot(v.x, v.y);
   return l > max ? { x: (v.x / l) * max, y: (v.y / l) * max } : v;
 };
+
+// Brains are untrusted: a buggy/malicious one can return NaN/Infinity, which
+// would corrupt the simulation. Validate every number a brain hands back.
+const isNum = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
+const isVec = (v: unknown): v is Vec2 =>
+  !!v && typeof v === "object" && isNum((v as Vec2).x) && isNum((v as Vec2).y);
 const dirTo = (from: Vec2, to: Vec2): Vec2 => {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
@@ -102,8 +108,9 @@ function resolveOwner(world: WorldState): number | null {
 function applyMovement(p: PlayerState, intent: Intent | undefined): void {
   let desired: Vec2 = { x: 0, y: 0 };
   if (intent) {
-    if (intent.kind === "move") desired = dirTo(p.pos, intent.to);
-    else if (intent.kind === "moveDir") {
+    // Ignore garbage targets/directions (NaN/Infinity) — treat as idle.
+    if (intent.kind === "move" && isVec(intent.to)) desired = dirTo(p.pos, intent.to);
+    else if (intent.kind === "moveDir" && isVec(intent.dir)) {
       const l = Math.hypot(intent.dir.x, intent.dir.y);
       if (l > 1e-9) desired = { x: intent.dir.x / l, y: intent.dir.y / l };
     }
@@ -145,6 +152,8 @@ function speedForDistance(dist: number): number {
 function tryKick(world: WorldState, p: PlayerState, intent: Intent | undefined): boolean {
   if (!intent || (intent.kind !== "pass" && intent.kind !== "shoot")) return false;
   if (world.ball.ownerId !== p.id || p.kickCooldown > 0) return false;
+  if (!isVec(intent.to)) return false; // garbage target: ignore the kick
+  if (intent.kind === "pass" && intent.range !== undefined && !isNum(intent.range)) return false;
   const d = dirTo(world.ball.pos, intent.to);
   if (d.x === 0 && d.y === 0) return false; // kicking at our own position: no-op
 

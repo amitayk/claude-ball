@@ -31,6 +31,8 @@ export interface MatchResult {
     field: { width: number; height: number; goalHeight: number };
     /** Resolved param values each side played with. */
     params: { home: ParamValues; away: ParamValues };
+    /** Set if a brain was stopped for exceeding its compute budget. */
+    fault?: { side: "home" | "away"; reason: string };
   };
   score: { home: number; away: number };
   frames: ReplayFrame[];
@@ -90,6 +92,15 @@ export interface RunOptions {
   /** Param overrides merged over each brain's declared defaults. */
   homeParams?: ParamValues;
   awayParams?: ParamValues;
+  /**
+   * Optional cap on cumulative `decide()` wall-time per brain for the whole
+   * match (ms). If a brain exceeds it the match stops and `meta.fault` is set.
+   * Guards against slow/runaway brains. Leave unset for pure, timing-free runs
+   * (e.g. reproducible CLI matches). Note: a brain that hangs forever in a
+   * single tick can't be interrupted in-process — that needs the Phase-4 worker
+   * sandbox; this only catches brains that are slow but keep returning.
+   */
+  brainBudgetMs?: number;
 }
 
 /** Run a full deterministic match between two brains and record a replay. */
@@ -107,9 +118,25 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
   let world = kickoff(rng, openingSide);
   const frames: ReplayFrame[] = [snapshot(world)];
 
+  const budget = opts.brainBudgetMs;
+  let homeMs = 0;
+  let awayMs = 0;
+  let fault: { side: "home" | "away"; reason: string } | undefined;
+
   for (let i = 0; i < ticks; i++) {
+    let t = performance.now();
     const homeIntents = safeDecide(home, world, "home", homeParams);
+    homeMs += performance.now() - t;
+    t = performance.now();
     const awayIntents = safeDecide(away, world, "away", awayParams);
+    awayMs += performance.now() - t;
+
+    if (budget !== undefined) {
+      if (homeMs > budget) fault = { side: "home", reason: `brain exceeded ${budget}ms compute budget` };
+      else if (awayMs > budget) fault = { side: "away", reason: `brain exceeded ${budget}ms compute budget` };
+      if (fault) break;
+    }
+
     world = step(world, homeIntents, awayIntents, rng);
     frames.push(snapshot(world));
   }
@@ -122,6 +149,7 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
       dt: RULES.dt,
       field: { ...RULES.field },
       params: { home: homeParams, away: awayParams },
+      ...(fault ? { fault } : {}),
     },
     score: { ...world.score },
     frames,
