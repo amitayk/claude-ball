@@ -19,6 +19,7 @@ export const brain: Brain = {
     laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than" },
     cornerRunSec: { default: 2.0, min: 0, max: 5, step: 0.1, label: "Corner run time (s)" },
     cornerInset: { default: 40, min: 10, max: 150, step: 5, label: "Corner inset" },
+    cornerCloseDist: { default: 120, min: 20, max: 400, step: 10, label: "Near-corner = pass now" },
     receivePath: { default: 130, min: 40, max: 300, step: 10, label: "Receive path width" },
   },
   decide(view: WorldView, p: ParamValues): TeamIntent {
@@ -26,6 +27,7 @@ export const brain: Brain = {
     const LANE_IGNORE_NEAR = p.laneIgnoreNear!;
     const CORNER_RUN_SEC = p.cornerRunSec!;
     const CORNER_INSET = p.cornerInset!;
+    const CORNER_CLOSE = p.cornerCloseDist!;
     const RECEIVE_PATH = p.receivePath!;
 
     const intents: TeamIntent = {};
@@ -79,25 +81,72 @@ export const brain: Brain = {
     const closestCorner = (pt: Vec2): Vec2 =>
       corners.reduce((a, b) => (dist(a, pt) <= dist(b, pt) ? a : b));
 
-    // Most-open teammate (preferring a clean lane), or null.
-    const mostOpenTeammate = (me: PlayerView): PlayerView | null => {
+    // Most-open teammate with a clean direct lane, or null.
+    const clearOpenTarget = (me: PlayerView): PlayerView | null => {
       let best: PlayerView | null = null;
       let bestScore = -1;
-      let any: PlayerView | null = null;
-      let anyScore = -1;
       for (const t of view.teammates) {
         if (t.id === me.id) continue;
+        if (laneBlocked(me.pos, t.pos)) continue;
         const s = openness(t.pos);
-        if (s > anyScore) {
-          anyScore = s;
-          any = t;
-        }
-        if (!laneBlocked(me.pos, t.pos) && s > bestScore) {
+        if (s > bestScore) {
           bestScore = s;
           best = t;
         }
       }
-      return best ?? any;
+      return best;
+    };
+    // Most-open teammate overall (last-resort forced pass), or null.
+    const anyOpenTarget = (me: PlayerView): PlayerView | null => {
+      let best: PlayerView | null = null;
+      let bestScore = -1;
+      for (const t of view.teammates) {
+        if (t.id === me.id) continue;
+        const s = openness(t.pos);
+        if (s > bestScore) {
+          bestScore = s;
+          best = t;
+        }
+      }
+      return best;
+    };
+
+    // Wall (bounce) pass: when no direct lane is open, aim at the mirror image
+    // of a teammate across the top or bottom wall, so the ball banks off the
+    // wall to reach him. Returns the aim point (the mirror), or null.
+    const wallPassAim = (me: PlayerView): Vec2 | null => {
+      const C = me.pos;
+      let best: Vec2 | null = null;
+      let bestScore = -1;
+      for (const t of view.teammates) {
+        if (t.id === me.id) continue;
+        // wall index 0 = top (y=0), 1 = bottom (y=H)
+        for (const wallY of [0, H]) {
+          const mirror: Vec2 = { x: t.pos.x, y: 2 * wallY - t.pos.y };
+          const denom = mirror.y - C.y;
+          if (Math.abs(denom) < 1e-6) continue;
+          const k = (wallY - C.y) / denom; // where C->mirror crosses the wall
+          if (k <= 0 || k >= 1) continue; // wall not between carrier and mirror
+          const bounce: Vec2 = { x: C.x + (mirror.x - C.x) * k, y: wallY };
+          if (bounce.x < 0 || bounce.x > W) continue;
+          if (laneBlocked(C, bounce) || laneBlocked(bounce, t.pos)) continue;
+          const s = openness(t.pos);
+          if (s > bestScore) {
+            bestScore = s;
+            best = mirror;
+          }
+        }
+      }
+      return best;
+    };
+
+    // Where to aim a pass: clear lane first, then a wall pass, then forced.
+    const passAim = (me: PlayerView): Vec2 | null => {
+      const clear = clearOpenTarget(me);
+      if (clear) return clear.pos;
+      const wall = wallPassAim(me);
+      if (wall) return wall;
+      return anyOpenTarget(me)?.pos ?? null;
     };
 
     // A spot far from the carrier with an open line to him (so we offer a pass
@@ -130,14 +179,13 @@ export const brain: Brain = {
 
     // --- on the ball ----------------------------------------------------
     if (carrier) {
-      if (held >= CORNER_RUN_SEC) {
-        const tgt = mostOpenTeammate(carrier);
-        intents[carrier.id] = tgt
-          ? { kind: "pass", to: tgt.pos }
-          : { kind: "move", to: closestCorner(carrier.pos) };
-      } else {
-        intents[carrier.id] = { kind: "move", to: closestCorner(carrier.pos) };
-      }
+      const corner = closestCorner(carrier.pos);
+      // Pass once the 2s run is up, OR right away if already near a corner.
+      const readyToPass = held >= CORNER_RUN_SEC || dist(carrier.pos, corner) < CORNER_CLOSE;
+      const aim = readyToPass ? passAim(carrier) : null;
+      intents[carrier.id] = aim
+        ? { kind: "pass", to: aim }
+        : { kind: "move", to: corner };
       // Teammates get an open line from the carrier at the most distance they can.
       view.teammates.forEach((me) => {
         if (me.id === carrier.id) return;
