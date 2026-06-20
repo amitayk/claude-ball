@@ -1,3 +1,4 @@
+import { createHash, randomBytes } from "node:crypto";
 import { createServer, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
@@ -5,6 +6,9 @@ import { fileURLToPath } from "node:url";
 import { placeBrainSource } from "@kr/ladder";
 import { runSandboxedMatch } from "@kr/arena";
 import { JsonStore } from "./store.js";
+
+const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
+const ADMIN_TOKEN = process.env.KR_ADMIN_TOKEN ?? "";
 
 // The API also serves the web UI, so one deploy gives the whole product at one
 // origin (no second host, no CORS in production).
@@ -62,23 +66,56 @@ const server = createServer((req, res) => {
     req.on("data", (c) => (body += c));
     req.on("end", async () => {
       try {
-        const { handle, name, source } = JSON.parse(body || "{}") as {
+        const { handle, name, source, key } = JSON.parse(body || "{}") as {
           handle?: string;
           name?: string;
           source?: string;
+          key?: string;
         };
         if (!handle || !name || !source) {
           return json(res, 400, { error: "handle, name, and source are required" });
+        }
+        if (!/^[a-z0-9_-]{2,24}$/i.test(handle)) {
+          return json(res, 400, { error: "handle must be 2-24 chars: letters, digits, - or _" });
+        }
+        // Ownership: first submit for a handle claims it and gets a key; later
+        // submits to that handle must present the same key.
+        const existing = store.find(`user-${handle}`);
+        let issuedKey: string | undefined;
+        let secret: string;
+        if (existing && existing.secret) {
+          if (!key || sha256(key) !== existing.secret) {
+            return json(res, 403, { error: `handle "${handle}" is taken - wrong or missing key` });
+          }
+          secret = existing.secret;
+        } else {
+          issuedKey = randomBytes(18).toString("base64url");
+          secret = sha256(issuedKey);
         }
         // NOTE: placement runs inline here for local dev. In production this
         // becomes a queued job so submits return immediately (see DEPLOYMENT.md).
         const placement = await placeBrainSource(source, { seeds: PLACEMENT_SEEDS });
         if (!placement.ok) return json(res, 400, { error: placement.error });
-        const bot = store.upsertUserBot({ handle, name, elo: placement.rating!, source, record: placement.record });
-        return json(res, 200, { bot: { ...bot, source: undefined }, placement });
+        const bot = store.upsertUserBot({ handle, name, elo: placement.rating!, source, secret, record: placement.record });
+        return json(res, 200, { bot: { ...bot, source: undefined, secret: undefined }, placement, key: issuedKey });
       } catch (err) {
         return json(res, 400, { error: err instanceof Error ? err.message : String(err) });
       }
+    });
+    return;
+  }
+
+  // Admin: delete a bot. Auth via the KR_ADMIN_TOKEN (header or ?token=).
+  if (req.method === "POST" && url === "/api/admin/delete") {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      const { id, token } = JSON.parse(body || "{}") as { id?: string; token?: string };
+      const given = token ?? (req.headers["x-admin-token"] as string | undefined) ?? "";
+      if (!ADMIN_TOKEN || given !== ADMIN_TOKEN) return json(res, 403, { error: "forbidden" });
+      if (!id) return json(res, 400, { error: "id required" });
+      const ok = store.deleteBot(id);
+      return json(res, ok ? 200 : 404, ok ? { ok: true } : { error: "not found" });
     });
     return;
   }

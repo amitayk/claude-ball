@@ -14,7 +14,7 @@ export class MatchPlayer {
     this.youSide = null;
     this.i = 0;
     this.playing = false;
-    this.speed = 2;
+    this.speed = 1.5;
     this.acc = 0;
     this.last = 0;
     this.effects = [];

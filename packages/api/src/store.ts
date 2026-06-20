@@ -13,23 +13,29 @@ export interface BotRecord {
   blurb?: string;
   /** Brain source — kept server-side so any matchup can be replayed; never listed. */
   source: string;
+  /** sha256 of the owner's claim key (user bots only); proves ownership on resubmit. */
+  secret?: string;
   createdAt: number;
 }
 
-/** Public view of a bot (no source). */
-export type PublicBot = Omit<BotRecord, "source">;
+/** Public view of a bot (no source, no secret). */
+export type PublicBot = Omit<BotRecord, "source" | "secret">;
 
-/**
- * Persistence behind a tiny interface so the local JSON store can be swapped for
- * Postgres in production without touching the server. One active bot per handle.
- */
 export interface Store {
   leaderboard(): PublicBot[];
   find(idOrName: string): BotRecord | undefined;
-  upsertUserBot(input: { handle: string; name: string; elo: number; source: string; record?: BotRecord["record"] }): BotRecord;
+  upsertUserBot(input: {
+    handle: string;
+    name: string;
+    elo: number;
+    source: string;
+    secret: string;
+    record?: BotRecord["record"];
+  }): BotRecord;
+  deleteBot(id: string): boolean;
 }
 
-const strip = ({ source: _s, ...rest }: BotRecord): PublicBot => rest;
+const strip = ({ source: _s, secret: _k, ...rest }: BotRecord): PublicBot => rest;
 
 export class JsonStore implements Store {
   private bots: BotRecord[] = [];
@@ -65,7 +71,14 @@ export class JsonStore implements Store {
     return this.bots.find((b) => b.id === idOrName || b.name === idOrName);
   }
 
-  upsertUserBot(input: { handle: string; name: string; elo: number; source: string; record?: BotRecord["record"] }): BotRecord {
+  upsertUserBot(input: {
+    handle: string;
+    name: string;
+    elo: number;
+    source: string;
+    secret: string;
+    record?: BotRecord["record"];
+  }): BotRecord {
     const id = `user-${input.handle}`;
     const existing = this.bots.find((b) => b.id === id);
     const rec: BotRecord = {
@@ -76,11 +89,20 @@ export class JsonStore implements Store {
       elo: input.elo,
       record: input.record,
       source: input.source,
+      secret: input.secret,
       createdAt: existing?.createdAt ?? Date.now(),
     };
     if (existing) Object.assign(existing, rec);
     else this.bots.push(rec);
     this.save();
     return rec;
+  }
+
+  deleteBot(id: string): boolean {
+    const before = this.bots.length;
+    this.bots = this.bots.filter((b) => b.id !== id);
+    if (this.bots.length === before) return false;
+    this.save();
+    return true;
   }
 }

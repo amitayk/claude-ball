@@ -21,7 +21,7 @@ player.onTick = (i, n) => {
     const f = player.replay.frames[i];
     $("ttime").textContent = (f.t * player.meta.dt).toFixed(1) + "s";
     $("theaterScore").innerHTML =
-      `<b class="cH">${esc(player.names.home)}</b> ${f.score.home} – ${f.score.away} <b class="cA">${esc(player.names.away)}</b>`;
+      `<b class="cH">${esc(player.names.home)}</b> ${f.score.home} - ${f.score.away} <b class="cA">${esc(player.names.away)}</b>`;
   }
   $("pp").textContent = player.playing ? "⏸" : "▶";
 };
@@ -44,7 +44,7 @@ async function refresh() {
       watch();
     }
   } catch {
-    $("conn").textContent = "○ can't reach the arena — run `npm run api`";
+    $("conn").textContent = "○ can't reach the arena - run `npm run api`";
     $("conn").classList.remove("ok");
   }
 }
@@ -58,7 +58,7 @@ function renderBoard() {
       const isUser = b.kind === "user";
       const medal = i < 3 ? MEDAL[i] : i + 1;
       const pill = isUser ? `<span class="pill you">you</span>` : `<span class="pill lib">house</span>`;
-      const wdl = b.record ? `${b.record.wins}-${b.record.draws}-${b.record.losses}` : "—";
+      const wdl = b.record ? `${b.record.wins}-${b.record.draws}-${b.record.losses}` : "-";
       const fill = Math.round(((b.elo - min) / span) * 100);
       const blurb = b.blurb ? `<div class="blurb">${esc(b.blurb)}</div>` : "";
       return `<li class="row ${isUser ? "you" : ""}" data-name="${esc(b.name)}">
@@ -110,6 +110,39 @@ $("watchBtn").addEventListener("click", watch);
 $("pp").addEventListener("click", () => player.toggle());
 $("scrub").addEventListener("input", () => player.seek(Number($("scrub").value)));
 $("speedSel").addEventListener("change", () => (player.speed = Number($("speedSel").value)));
+player.speed = Number($("speedSel").value); // default 1.5×
+
+// 🎲 random seed → re-run
+$("diceBtn").addEventListener("click", () => {
+  $("seedInput").value = String(1 + Math.floor(Math.random() * 9999));
+  watch();
+});
+
+// fullscreen the pitch (B)
+$("fsBtn").addEventListener("click", () => {
+  const el = document.querySelector(".stagewrap");
+  if (document.fullscreenElement) document.exitFullscreen();
+  else el.requestFullscreen?.();
+});
+
+// keyboard: space = play/pause, ← → = step a frame (ignored while typing)
+document.addEventListener("keydown", (e) => {
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
+  if (e.code === "Space") { e.preventDefault(); player.toggle(); }
+  else if (e.code === "ArrowRight") { e.preventDefault(); player.seek(player.i + 1); }
+  else if (e.code === "ArrowLeft") { e.preventDefault(); player.seek(player.i - 1); }
+});
+
+// click a command to copy it
+for (const el of document.querySelectorAll(".cmd")) {
+  el.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(el.textContent.trim());
+      el.classList.add("copied");
+      setTimeout(() => el.classList.remove("copied"), 1200);
+    } catch {}
+  });
+}
 
 refresh();
 setInterval(refresh, 6000);

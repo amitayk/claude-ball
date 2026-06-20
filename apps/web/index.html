@@ -14,8 +14,10 @@
         <div class="logo">⚽ cladu-regel</div>
         <h1>The Arena</h1>
         <p class="tag">
-          Design a soccer team's <b>brain</b>. You do the thinking — your AI does the typing.
-          Submit it and climb the ladder against the house bots and everyone else.
+          Design a soccer team's <b>brain</b>.<br />
+          <b>You are the coach.</b><br />
+          You do the thinking, your AI does the typing. Submit it and climb the ladder
+          against the house bots and everyone else.
         </p>
         <div class="conn" id="conn">connecting…</div>
       </div>
@@ -26,18 +28,26 @@
         <select id="homeSel" class="sel home"></select>
         <span class="vs">vs</span>
         <select id="awaySel" class="sel away"></select>
-        <label class="seed">seed <input id="seedInput" type="number" min="1" value="1" /></label>
+        <span class="seedfield">
+          <span class="seedlabel">seed</span>
+          <input id="seedInput" type="number" min="1" value="1" />
+          <button id="diceBtn" title="Random seed" aria-label="Random seed">🎲</button>
+        </span>
         <button id="watchBtn" class="primary">▶ Watch</button>
         <span id="theaterScore" class="tscore"></span>
       </div>
       <div class="stagewrap"><canvas id="pitch" width="1050" height="680"></canvas></div>
       <div class="controls">
-        <button id="pp">⏸</button>
+        <button id="pp" title="Play / pause (space)">⏸</button>
         <input id="scrub" type="range" min="0" max="0" value="0" />
         <span id="ttime" class="muted small">0.0s</span>
         <select id="speedSel">
-          <option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option>
+          <option value="1">1×</option>
+          <option value="1.5" selected>1.5×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
         </select>
+        <button id="fsBtn" title="Fullscreen (← → step, space play)">⛶</button>
       </div>
     </section>
 
@@ -55,23 +65,45 @@
         <div class="card howto">
           <h2>Compete in 3 steps</h2>
           <ol class="steps">
-            <li><b>Get the kit.</b> Clone the repo and open the brain folder in Claude — its <code>CLAUDE.md</code> keeps the AI to coding only; the tactics are yours.</li>
-            <li><b>Build &amp; test.</b> <code>npm run coach</code> opens your workbench: watch matches, tune knobs, pick opponents by skill.</li>
-            <li><b>Submit.</b> <code>KR_HANDLE=you npm run submit</code> uploads your brain; it's placed on the ladder vs every house bot.</li>
+            <li><b>Get the kit.</b> Clone it and install. Open the brain folder in Claude; its <code>CLAUDE.md</code> keeps the AI to coding only, the tactics are yours.
+              <code class="cmd">git clone https://github.com/amitayk/cladu-regel &amp;&amp; cd cladu-regel &amp;&amp; npm install</code></li>
+            <li><b>Build &amp; test.</b> Open your workbench: watch matches, tune knobs, pick opponents by skill.
+              <code class="cmd">cd laika &amp;&amp; npm run coach</code></li>
+            <li><b>Submit.</b> Upload your brain; it's placed on the ladder vs every house bot.
+              <code class="cmd">KR_HANDLE=you npm run submit</code></li>
           </ol>
           <p class="muted small">House bots set the skill floor &amp; ceiling. Beat <span class="dot lib"></span>blitz to top the table.</p>
         </div>
         <div class="card legend">
           <h2>Reading the table</h2>
           <ul class="leg">
-            <li><span class="pill lib">house</span> built-in bot</li>
-            <li><span class="pill you">you</span> your bot</li>
-            <li><b>Elo</b> — skill rating; higher beats lower more often</li>
-            <li><b>W-D-L</b> — placement record vs the house bots</li>
+            <li><span class="pill lib">house</span><span>a built-in bot</span></li>
+            <li><span class="pill you">you</span><span>a bot someone submitted</span></li>
+            <li><b class="lg">Elo</b><span>skill rating; higher usually beats lower</span></li>
+            <li><b class="lg">W-D-L</b><span>placement record vs the house bots</span></li>
           </ul>
         </div>
       </aside>
     </main>
+
+    <section class="rules">
+      <div class="card">
+        <h2>How the game works</h2>
+        <ul class="rulelist">
+          <li><b>4 players a side</b>, one ~90-second match. You command your players: move to a spot, pass, or shoot.</li>
+          <li><b>Movement has momentum.</b> Players accelerate to a top speed and can't stop or turn on a dime; sharp turns cost speed.</li>
+          <li><b>Only the player on the ball</b> can pass or shoot. You're "on the ball" when you're close enough to it.</li>
+          <li><b>Passing:</b> aim where you want the ball to stop. A longer pass is struck harder automatically.</li>
+          <li><b>Shooting:</b> hit at full pace toward the goal.</li>
+          <li><b>Harder = less accurate.</b> Powerful kicks scatter; placed/short passes are reliable.</li>
+          <li><b>Loose balls</b> go to the nearest player, but a fast-moving ball can't be collected until it slows, so passes can fly past.</li>
+          <li><b>The ball rolls and slows</b> to a stop; harder kicks travel farther. Side and end walls bounce it.</li>
+          <li><b>Kickoff:</b> the team that conceded restarts from the centre spot, opponents stay outside the circle, and you must play the ball backward first.</li>
+          <li><b>Scoring:</b> put the ball through the opponent's goal. Most goals in 90 seconds wins.</li>
+          <li><b>Deterministic:</b> the same matchup and seed always produce the exact same game.</li>
+        </ul>
+      </div>
+    </section>
 
     <footer class="muted small">deterministic matches · sandboxed brains · <span id="apihint"></span></footer>
     <script type="module" src="./app.js"></script>

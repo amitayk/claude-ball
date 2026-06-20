@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cladu-regel · admin</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <header class="hero" style="padding-bottom:12px">
+      <div class="hero-inner">
+        <div class="logo">⚽ cladu-regel</div>
+        <h1 style="font-size:32px">Admin</h1>
+        <p class="tag">Manage the ladder. Your admin token is stored only in this browser.</p>
+      </div>
+    </header>
+    <main style="grid-template-columns:1fr">
+      <section class="card">
+        <label class="row" style="margin-bottom:14px">
+          <span>Admin token</span>
+          <input id="token" type="password" placeholder="KR_ADMIN_TOKEN" style="min-width:240px" />
+        </label>
+        <ol id="rows" class="rows"><li class="muted">enter token, then refresh</li></ol>
+        <button id="reload" class="primary" style="margin-top:12px">Refresh</button>
+      </section>
+    </main>
+    <script type="module" src="./admin.js"></script>
+  </body>
+</html>
