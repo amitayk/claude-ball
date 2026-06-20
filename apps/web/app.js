@@ -1,11 +1,13 @@
 import { MatchPlayer } from "./match.js";
-import { BRAND } from "./brand.js";
+import { BRAND, REPO } from "./brand.js";
 
 // Brand the page from one const.
 document.title = `${BRAND} · the arena`;
 {
   const logo = document.querySelector(".logo");
   if (logo) logo.textContent = `⚽ ${BRAND}`;
+  const star = document.getElementById("starBtn");
+  if (star) star.href = REPO;
 }
 
 // API base: ?api=<url> (persisted) > window.KR_API > saved > localhost. Lets the
