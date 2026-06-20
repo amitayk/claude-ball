@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cladu-regel · the arena</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="logo">⚽ cladu-regel</div>
+        <h1>The Arena</h1>
+        <p class="tag">
+          Design a soccer team's <b>brain</b>. You do the thinking — your AI does the typing.
+          Submit it and climb the ladder against the house bots and everyone else.
+        </p>
+        <div class="conn" id="conn">connecting…</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="board card">
+        <div class="board-head">
+          <h2>Leaderboard</h2>
+          <span class="muted small" id="count"></span>
+        </div>
+        <ol id="rows" class="rows"><li class="muted">loading…</li></ol>
+      </section>
+
+      <aside class="side">
+        <div class="card howto">
+          <h2>Compete in 3 steps</h2>
+          <ol class="steps">
+            <li><b>Get the kit.</b> Clone the repo and open the brain folder in Claude — its <code>CLAUDE.md</code> keeps the AI to coding only; the tactics are yours.</li>
+            <li><b>Build &amp; test.</b> <code>npm run coach</code> opens your workbench: watch matches, tune knobs, pick opponents by skill.</li>
+            <li><b>Submit.</b> <code>KR_HANDLE=you npm run submit</code> uploads your brain; it's placed on the ladder vs every house bot.</li>
+          </ol>
+          <p class="muted small">House bots set the skill floor &amp; ceiling. Beat <span class="dot lib"></span>blitz to top the table.</p>
+        </div>
+        <div class="card legend">
+          <h2>Reading the table</h2>
+          <ul class="leg">
+            <li><span class="pill lib">house</span> built-in bot</li>
+            <li><span class="pill you">you</span> your bot</li>
+            <li><b>Elo</b> — skill rating; higher beats lower more often</li>
+            <li><b>W-D-L</b> — placement record vs the house bots</li>
+          </ul>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="muted small">deterministic matches · sandboxed brains · <span id="apihint"></span></footer>
+    <script src="./app.js"></script>
+  </body>
+</html>
