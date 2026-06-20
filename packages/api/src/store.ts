@@ -37,6 +37,10 @@ export interface Store {
 
 const strip = ({ source: _s, secret: _k, ...rest }: BotRecord): PublicBot => rest;
 
+// Current on-disk source for each library bot, so library matchups always bundle
+// against the code we ship (immune to stale source persisted before a rename).
+const liveLibrarySource = new Map(libraryBots.map((b) => [b.name, b.source]));
+
 export class JsonStore implements Store {
   private bots: BotRecord[] = [];
 
@@ -68,7 +72,12 @@ export class JsonStore implements Store {
   }
 
   find(idOrName: string): BotRecord | undefined {
-    return this.bots.find((b) => b.id === idOrName || b.name === idOrName);
+    const rec = this.bots.find((b) => b.id === idOrName || b.name === idOrName);
+    if (rec && rec.kind === "library") {
+      const src = liveLibrarySource.get(rec.name);
+      if (src) return { ...rec, source: src };
+    }
+    return rec;
   }
 
   upsertUserBot(input: {
