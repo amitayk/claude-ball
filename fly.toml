@@ -1,0 +1,32 @@
+# Fly.io config for the arena API + sandboxed runner.
+# First deploy:
+#   fly launch --no-deploy        # creates the app (pick a name/region)
+#   fly volumes create kr_data --size 1
+#   fly deploy
+app = "cladu-regel-arena"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+  KR_DATA = "/data/arena.json"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+# Persist the JSON ladder store. (Swap for Postgres at scale — DEPLOYMENT.md.)
+[mounts]
+  source = "kr_data"
+  destination = "/data"
+
+# Matches are CPU-bound; give the machine room.
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 2
+  memory = "1gb"

@@ -1,5 +1,9 @@
 import { MatchPlayer } from "./match.js";
 
+// API base: ?api=<url> (persisted) > window.KR_API > saved > localhost. Lets the
+// static web app be deployed once and pointed at any arena.
+const qApi = new URLSearchParams(location.search).get("api");
+if (qApi) localStorage.setItem("kr_api", qApi);
 const API = window.KR_API || localStorage.getItem("kr_api") || "http://localhost:8787";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
