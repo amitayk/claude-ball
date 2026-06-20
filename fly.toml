@@ -1,10 +1,12 @@
 # Fly.io config for the arena API + sandboxed runner.
-# First deploy:
-#   fly launch --no-deploy        # creates the app (pick a name/region)
-#   fly volumes create kr_data --size 1
-#   fly deploy
-app = "cladu-regel-arena"
-primary_region = "iad"
+#
+# First deploy (via the GitHub launcher or `fly deploy`) uses EPHEMERAL storage —
+# the JSON ladder resets on redeploy. To make it persistent, create a volume and
+# re-add the [mounts] block below:
+#   fly volumes create kr_data --size 1 --region ams
+#   (then set KR_DATA=/data/arena.json and uncomment [mounts])
+app = "cladu-regel"
+primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile"
@@ -12,6 +14,7 @@ primary_region = "iad"
 [env]
   PORT = "8787"
   KR_DATA = "/data/arena.json"
+  KR_PLACEMENT_SEEDS = "3"
 
 [http_service]
   internal_port = 8787
@@ -20,13 +23,13 @@ primary_region = "iad"
   auto_start_machines = true
   min_machines_running = 0
 
-# Persist the JSON ladder store. (Swap for Postgres at scale — DEPLOYMENT.md.)
-[mounts]
-  source = "kr_data"
-  destination = "/data"
-
-# Matches are CPU-bound; give the machine room.
+# Matches are CPU-bound (bundling + simulation); give the machine real room.
 [[vm]]
   cpu_kind = "shared"
   cpus = 2
   memory = "1gb"
+
+# Persistent ladder store — enable once you've created the volume (see top):
+# [mounts]
+#   source = "kr_data"
+#   destination = "/data"
