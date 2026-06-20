@@ -1,7 +1,19 @@
 import { createServer, type ServerResponse } from "node:http";
+import { readFile } from "node:fs/promises";
+import { extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
 import { placeBrainSource } from "@kr/ladder";
 import { runSandboxedMatch } from "@kr/arena";
 import { JsonStore } from "./store.js";
+
+// The API also serves the web UI, so one deploy gives the whole product at one
+// origin (no second host, no CORS in production).
+const webDir = fileURLToPath(new URL("../../../apps/web/", import.meta.url));
+const MIME: Record<string, string> = {
+  ".html": "text/html",
+  ".js": "text/javascript",
+  ".css": "text/css",
+};
 
 const store = new JsonStore(process.env.KR_DATA ?? ".data/arena.json");
 const port = Number(process.env.PORT ?? 8787);
@@ -68,6 +80,20 @@ const server = createServer((req, res) => {
         return json(res, 400, { error: err instanceof Error ? err.message : String(err) });
       }
     });
+    return;
+  }
+
+  // Static web app for everything else (GET only).
+  if (req.method === "GET" && !url.startsWith("/api/")) {
+    const rel = url === "/" ? "index.html" : url.replace(/^\/+/, "");
+    const file = normalize(join(webDir, rel));
+    if (!file.startsWith(webDir)) return json(res, 403, { error: "forbidden" }); // no path traversal
+    readFile(file)
+      .then((buf) => {
+        res.writeHead(200, { "Content-Type": MIME[extname(file)] ?? "application/octet-stream" });
+        res.end(buf);
+      })
+      .catch(() => json(res, 404, { error: "not found" }));
     return;
   }
 

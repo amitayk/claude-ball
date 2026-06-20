@@ -4,12 +4,14 @@ import { MatchPlayer } from "./match.js";
 // static web app be deployed once and pointed at any arena.
 const qApi = new URLSearchParams(location.search).get("api");
 if (qApi) localStorage.setItem("kr_api", qApi);
-const API = window.KR_API || localStorage.getItem("kr_api") || "http://localhost:8787";
+const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
+// In production the API serves this page, so default to same-origin ("").
+const API = window.KR_API ?? qApi ?? localStorage.getItem("kr_api") ?? (isLocal ? "http://localhost:8787" : "");
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const MEDAL = ["🥇", "🥈", "🥉"];
 
-$("apihint").textContent = API;
+$("apihint").textContent = API || location.origin;
 
 const player = new MatchPlayer($("pitch"));
 player.onTick = (i, n) => {

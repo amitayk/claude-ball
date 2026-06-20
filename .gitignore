@@ -10,3 +10,5 @@ laika/viewer/replay.json
 notesamitay.txt
 
 .data/
+fly.io-token.txt
+*token*.txt
