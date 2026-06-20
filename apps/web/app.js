@@ -12,8 +12,13 @@ document.title = `${BRAND} · the arena`;
 
 // API base: ?api=<url> (persisted) > window.KR_API > saved > localhost. Lets the
 // static web app be deployed once and pointed at any arena.
-const qApi = new URLSearchParams(location.search).get("api");
+const initParams = new URLSearchParams(location.search);
+const qApi = initParams.get("api");
 if (qApi) localStorage.setItem("kr_api", qApi);
+// Shareable matchup state: ?home=<bot>&away=<bot>&seed=<n>
+const initHome = initParams.get("home");
+const initAway = initParams.get("away");
+const initSeed = initParams.get("seed");
 const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
 // In production the API serves this page, so default to same-origin ("").
 const API = window.KR_API ?? qApi ?? localStorage.getItem("kr_api") ?? (isLocal ? "http://localhost:8787" : "");
@@ -49,11 +54,22 @@ async function refresh() {
     updateBotName();
     $("conn").textContent = "● live";
     $("conn").classList.add("ok");
-    if (firstLoad && bots.length >= 2) {
+    if (firstLoad && bots.length >= 1) {
       firstLoad = false;
-      const pick = (n, i) => bots.find((b) => b.name === n)?.name ?? bots[i]?.name;
-      $("homeSel").value = pick("blitz", 0);
-      $("awaySel").value = pick("formation", 1);
+      const has = (n) => !!n && bots.some((b) => b.name === n);
+      let home, away;
+      if (has(initHome)) {
+        // shared/submit link: a specific bot, defaulting its opponent to blitz
+        home = initHome;
+        away = has(initAway) ? initAway : home === "blitz" ? "formation" : "blitz";
+      } else {
+        home = has("blitz") ? "blitz" : bots[0].name;
+        away = has("formation") ? "formation" : bots.find((b) => b.name !== home)?.name ?? home;
+      }
+      if (!has(away) || away === home) away = bots.find((b) => b.name !== home)?.name ?? home;
+      $("homeSel").value = home;
+      $("awaySel").value = away;
+      if (initSeed && /^\d+$/.test(initSeed)) $("seedInput").value = initSeed;
       watch();
     }
   } catch {
@@ -105,9 +121,18 @@ function pickMatchup(name) {
   document.querySelector(".theater").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function updateUrl(home, away, seed) {
+  const p = new URLSearchParams(location.search);
+  p.set("home", home);
+  p.set("away", away);
+  p.set("seed", String(seed));
+  history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
+}
+
 async function watch() {
   const home = $("homeSel").value, away = $("awaySel").value, seed = $("seedInput").value || 1;
   if (!home || !away) return;
+  updateUrl(home, away, seed);
   const btn = $("watchBtn");
   const label = btn.textContent;
   btn.disabled = true;

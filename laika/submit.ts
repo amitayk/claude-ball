@@ -42,4 +42,4 @@ if (data.key) {
 const r = data.placement!.record;
 console.log(`\n  ✅ submitted "${data.bot!.name}" as @${data.bot!.handle}`);
 console.log(`     placed at Elo ${data.bot!.elo}  (${r.wins}W-${r.draws}D-${r.losses}L vs the library)`);
-console.log(`     watch it at ${api}\n`);
+console.log(`     watch it at ${api}/?home=${encodeURIComponent(data.bot!.name)}&away=blitz\n`);
