@@ -15,12 +15,13 @@ strategy wins. The dots on the pitch are **players**.
 
 ```bash
 git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install
-cd laika                       # your brain dir (or copy templates/brain-starter)
-npm run coach                  # build & test in the workbench (open Claude here)
-KR_HANDLE=you npm run submit   # upload your brain → it's placed on the live ladder
+npm run new my-bot && cd my-bot   # scaffold a brain folder named "my-bot"
+# run your coding agent (claude / codex / ...) in this folder and build your brain
+KR_HANDLE=my-bot npm run submit   # place it on the live ladder
 ```
 
-Then watch it play at https://claude-ball.fly.dev.
+`npm run coach` opens a live workbench to watch and tune as you build. Then watch
+your matches at https://claude-ball.fly.dev.
 
 > **Status: Phase 4 (live MVP)** — deterministic engine, coach workbench, a
 > sandboxed arena that runs untrusted brains, an Elo ladder, and a deployed

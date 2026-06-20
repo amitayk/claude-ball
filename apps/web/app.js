@@ -43,6 +43,7 @@ async function refresh() {
     bots = (await res.json()).bots || [];
     renderBoard();
     syncSelects();
+    updateBotName();
     $("conn").textContent = "● live";
     $("conn").classList.add("ok");
     if (firstLoad && bots.length >= 2) {
@@ -141,16 +142,37 @@ document.addEventListener("keydown", (e) => {
   else if (e.code === "ArrowLeft") { e.preventDefault(); player.seek(player.i - 1); }
 });
 
-// click a command to copy it
-for (const el of document.querySelectorAll(".cmd")) {
-  el.addEventListener("click", async () => {
+// Copy buttons next to each command block
+for (const btn of document.querySelectorAll(".copy")) {
+  btn.addEventListener("click", async () => {
+    const code = btn.previousElementSibling;
     try {
-      await navigator.clipboard.writeText(el.textContent.trim());
-      el.classList.add("copied");
-      setTimeout(() => el.classList.remove("copied"), 1200);
+      await navigator.clipboard.writeText(code.textContent.trim());
+      const label = btn.textContent;
+      btn.textContent = "Copied ✓";
+      btn.classList.add("copied");
+      setTimeout(() => { btn.textContent = label; btn.classList.remove("copied"); }, 1200);
     } catch {}
   });
 }
+
+// Step 2: pick a bot name -> validate, check availability, fill the commands.
+const SAFE_NAME = /^[a-z0-9_-]{2,24}$/i;
+function updateBotName() {
+  const raw = $("botName").value.trim();
+  const name = raw || "your-bot-name";
+  $("cmdNew").textContent = `npm run new ${name} && cd ${name}`;
+  $("cmdSubmit").textContent = `KR_HANDLE=${name} npm run submit`;
+  const st = $("nameStatus");
+  if (!raw) { st.textContent = ""; st.className = "namestatus"; return; }
+  if (!SAFE_NAME.test(raw)) { st.textContent = "2-24: a-z 0-9 - _"; st.className = "namestatus bad"; return; }
+  const taken = bots.some(
+    (b) => b.kind === "user" && [b.handle, b.name].some((x) => (x || "").toLowerCase() === raw.toLowerCase()),
+  );
+  st.textContent = taken ? "taken ✗" : "available ✓";
+  st.className = "namestatus " + (taken ? "bad" : "ok");
+}
+$("botName").addEventListener("input", updateBotName);
 
 refresh();
 setInterval(refresh, 6000);

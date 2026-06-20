@@ -134,16 +134,31 @@ main {
 .steps li { margin-bottom: 14px; }
 .steps li b { color: var(--text); }
 
-/* copy-friendly command blocks (orangeish, never wrap mid-command) */
+/* command block + always-visible Copy button (code never wraps mid-command) */
+.cmdrow { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
 .cmd {
-  display: block; margin-top: 6px; padding: 8px 10px; border-radius: 8px;
+  flex: 1; min-width: 0; padding: 8px 10px; border-radius: 8px;
   background: #0e1311; border: 1px solid var(--line); color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
-  white-space: nowrap; overflow-x: auto; cursor: copy; position: relative;
+  white-space: nowrap; overflow-x: auto;
 }
-.cmd:hover { border-color: var(--accent); }
-.cmd::after { content: "copy"; position: absolute; right: 8px; top: 7px; font-size: 10px; color: var(--muted); background: var(--card); padding: 0 4px; }
-.cmd.copied::after { content: "copied ✓"; color: var(--accent); }
+.copy {
+  flex: none; background: var(--accent); color: var(--accent-ink); border: none;
+  border-radius: 8px; padding: 0 14px; font-weight: 700; font-size: 12px; cursor: pointer;
+}
+.copy:hover { filter: brightness(1.06); }
+.copy.copied { background: var(--pitch); color: #fff; }
+
+/* bot-name picker (step 2) */
+.namerow { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.namerow input {
+  flex: 1; min-width: 0; background: #0e1311; border: 1px solid var(--line); border-radius: 8px;
+  padding: 8px 10px; color: var(--text); font: inherit;
+}
+.namerow input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,122,60,0.15); }
+.namestatus { font-size: 12.5px; white-space: nowrap; min-width: 80px; }
+.namestatus.ok { color: #5fd068; }
+.namestatus.bad { color: #ff6b6b; }
 
 /* legend (C): pill/term in a fixed column so wrapped text stays aligned */
 .leg { list-style: none; margin: 0; padding: 0; }

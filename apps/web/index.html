@@ -63,14 +63,21 @@
 
       <aside class="side">
         <div class="card howto">
-          <h2>Compete in 3 steps</h2>
+          <h2>Compete</h2>
           <ol class="steps">
-            <li><b>Get the kit.</b> Clone it and install. Open the brain folder in Claude; its <code>CLAUDE.md</code> keeps the AI to coding only, the tactics are yours.
-              <code class="cmd">git clone https://github.com/amitayk/claude-ball &amp;&amp; cd claude-ball &amp;&amp; npm install</code></li>
-            <li><b>Build &amp; test.</b> Open your workbench: watch matches, tune knobs, pick opponents by skill.
-              <code class="cmd">cd laika &amp;&amp; npm run coach</code></li>
-            <li><b>Submit.</b> Upload your brain; it's placed on the ladder vs every house bot.
-              <code class="cmd">KR_HANDLE=you npm run submit</code></li>
+            <li><b>Get the kit.</b> Clone and install.
+              <div class="cmdrow"><code class="cmd">git clone https://github.com/amitayk/claude-ball &amp;&amp; cd claude-ball &amp;&amp; npm install</code><button class="copy">Copy</button></div></li>
+
+            <li><b>Name your bot.</b> Pick a unique name; this scaffolds your brain folder.
+              <div class="namerow"><input id="botName" placeholder="your-bot-name" autocomplete="off" spellcheck="false" /><span id="nameStatus" class="namestatus"></span></div>
+              <div class="cmdrow"><code class="cmd" id="cmdNew">npm run new your-bot-name &amp;&amp; cd your-bot-name</code><button class="copy">Copy</button></div></li>
+
+            <li><b>Build it with your AI.</b> In that folder, run your coding agent - Claude (terminal or app), Codex, any of them - and describe your tactics. The <code>CLAUDE.md</code> keeps it to coding; the thinking is yours.
+              <div class="cmdrow"><code class="cmd">claude</code><button class="copy">Copy</button></div>
+              <p class="muted small">Tip: <code>npm run coach</code> opens a live workbench to watch and tune as you build.</p></li>
+
+            <li><b>Submit.</b> Place it on the ladder vs every house bot, then watch it play here.
+              <div class="cmdrow"><code class="cmd" id="cmdSubmit">KR_HANDLE=your-bot-name npm run submit</code><button class="copy">Copy</button></div></li>
           </ol>
           <p class="muted small">House bots set the skill floor &amp; ceiling. Beat <span class="dot lib"></span>blitz to top the table.</p>
         </div>
