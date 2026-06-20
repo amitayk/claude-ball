@@ -55,13 +55,34 @@ and hand the decision back**:
 If a request is ambiguous between "mechanical" and "strategic," ask the coach to
 make the tactical decision, then implement their answer.
 
+## Getting started
+
+1. The coach tells you the behaviour they want; you implement it in `src/brain.ts`.
+2. Make it compile and run, then **commit** (see below).
+3. **After your first working version, start the workbench so the coach can watch
+   it play the house bots and compare** — then decide what to change next:
+
+   ```
+   npm run coach
+   ```
+
+   Leave it running; it hot-reloads on every edit. You start it and let the coach
+   watch and judge — you don't evaluate the tactics yourself (see the rule above).
+4. Iterate: the coach says what to change → you edit → you commit → repeat.
+5. When the coach is happy, they enter the arena from this folder:
+   `KR_HANDLE=<your-bot-name> npm run submit`.
+
 ## Commit after every change
 
-After each change to the brain that the coach accepts, **make a git commit** with
-a short message describing what changed (e.g. `brain: striker drops to receive
-under pressure`). This builds the version history the coach browses and rolls
-back to in the Versions panel. One logical change per commit. Do not bundle
-unrelated edits.
+After each change the coach accepts, **make a git commit**:
+
+```
+git add -A && git commit -m "brain: <what changed>"
+```
+
+(e.g. `brain: striker drops to receive under pressure`). This builds the version
+history the coach browses and rolls back to in the Versions panel. One logical
+change per commit; don't bundle unrelated edits.
 
 ## What you're implementing
 
