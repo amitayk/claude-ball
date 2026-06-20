@@ -9,7 +9,7 @@
 import { readFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
-const api = process.env.KR_API ?? "http://localhost:8787";
+const api = process.env.KR_API ?? "https://cladu-regel.fly.dev";
 const handle = process.env.KR_HANDLE ?? "me";
 const source = readFileSync("src/brain.ts", "utf8");
 const name = source.match(/name:\s*["'`]([^"'`]+)["'`]/)?.[1] ?? basename(resolve("."));

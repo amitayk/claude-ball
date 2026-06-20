@@ -8,9 +8,24 @@ the thinking; the AI is only allowed to code** (see
 Two team brains play a deterministic 2D match. Whoever designed the smarter
 strategy wins. The dots on the pitch are **players**.
 
-> **Status: Phase 2** — deterministic engine, headless runner, and a live
-> **coach workbench** (field + control panel + version history, hot-reloads on
-> edit). Server/ladder (Phase 4) is not built yet.
+> **🏟 The arena is LIVE: https://cladu-regel.fly.dev** — watch any matchup and
+> see the leaderboard. Build a brain and `npm run submit` to climb it.
+
+## Compete
+
+```bash
+git clone https://github.com/amitayk/cladu-regel && cd cladu-regel && npm install
+cd laika                       # your brain dir (or copy templates/brain-starter)
+npm run coach                  # build & test in the workbench (open Claude here)
+KR_HANDLE=you npm run submit   # upload your brain → it's placed on the live ladder
+```
+
+Then watch it play at https://cladu-regel.fly.dev.
+
+> **Status: Phase 4 (live MVP)** — deterministic engine, coach workbench, a
+> sandboxed arena that runs untrusted brains, an Elo ladder, and a deployed
+> web app (leaderboard + watch-any-matchup). Hardening in progress: shared
+> Postgres store, auth + rate limits, background placement queue.
 
 ## Quick start
 

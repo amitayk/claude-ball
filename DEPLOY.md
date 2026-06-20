@@ -1,5 +1,14 @@
 # Going live — quickstart
 
+> **STATUS: LIVE** at **https://cladu-regel.fly.dev** — one Fly machine (ams,
+> shared-cpu-2x / 1GB) serving both the web UI and the arena API, with the ladder
+> persisted on a volume. Deployed with `flyctl deploy --remote-only`.
+> Single-machine for now (the JSON store is per-machine); the Postgres swap is
+> what unlocks horizontal scaling.
+
+---
+
+
 The smallest real deploy: **one paid account (Fly.io)** for the arena API +
 sandboxed runner, and a **free static host** for the web app. (Postgres/Supabase
 and GitHub auth come later — see `DEPLOYMENT.md`. The first deploy uses a JSON
