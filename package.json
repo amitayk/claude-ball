@@ -14,7 +14,8 @@
     "match": "tsx packages/runner/src/cli.ts",
     "viewer": "tsx packages/viewer/serve.ts",
     "demo": "npm run match -- formation chaser --seed 7 --out packages/viewer/replay.json && npm run viewer",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "api": "tsx packages/api/src/server.ts"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

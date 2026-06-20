@@ -8,3 +8,5 @@ laika/viewer/replay.json
 *.replay.json
 .kr-versions/
 notesamitay.txt
+
+.data/

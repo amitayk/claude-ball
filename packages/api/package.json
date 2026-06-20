@@ -1,0 +1,11 @@
+{
+  "name": "@kr/api",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/server.ts"
+  },
+  "dependencies": {
+    "@kr/ladder": "0.1.0"
+  }
+}

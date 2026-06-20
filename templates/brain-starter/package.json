@@ -9,7 +9,8 @@
     "match": "tsx play.ts",
     "viewer": "tsx viewer/serve.ts",
     "play": "tsx play.ts --out viewer/replay.json && tsx viewer/serve.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "submit": "tsx submit.ts"
   },
   "dependencies": {
     "@kr/brain-api": "0.1.0",
