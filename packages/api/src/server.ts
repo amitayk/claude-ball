@@ -31,7 +31,7 @@ function json(res: ServerResponse, code: number, body: unknown): void {
 
 const server = createServer((req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
-  const url = (req.url ?? "/").split("?")[0];
+  const url = (req.url ?? "/").split("?")[0] ?? "/";
 
   if (req.method === "GET" && url === "/api/leaderboard") {
     return json(res, 200, { bots: store.leaderboard() });
