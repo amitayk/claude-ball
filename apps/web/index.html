@@ -21,12 +21,33 @@
       </div>
     </header>
 
+    <section class="theater card">
+      <div class="matchup">
+        <select id="homeSel" class="sel home"></select>
+        <span class="vs">vs</span>
+        <select id="awaySel" class="sel away"></select>
+        <label class="seed">seed <input id="seedInput" type="number" min="1" value="1" /></label>
+        <button id="watchBtn" class="primary">▶ Watch</button>
+        <span id="theaterScore" class="tscore"></span>
+      </div>
+      <div class="stagewrap"><canvas id="pitch" width="1050" height="680"></canvas></div>
+      <div class="controls">
+        <button id="pp">⏸</button>
+        <input id="scrub" type="range" min="0" max="0" value="0" />
+        <span id="ttime" class="muted small">0.0s</span>
+        <select id="speedSel">
+          <option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option>
+        </select>
+      </div>
+    </section>
+
     <main>
       <section class="board card">
         <div class="board-head">
           <h2>Leaderboard</h2>
           <span class="muted small" id="count"></span>
         </div>
+        <p class="muted small">Click any two bots to watch them play.</p>
         <ol id="rows" class="rows"><li class="muted">loading…</li></ol>
       </section>
 
@@ -53,6 +74,6 @@
     </main>
 
     <footer class="muted small">deterministic matches · sandboxed brains · <span id="apihint"></span></footer>
-    <script src="./app.js"></script>
+    <script type="module" src="./app.js"></script>
   </body>
 </html>

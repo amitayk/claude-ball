@@ -1,56 +1,109 @@
-// Arena web app — fetches the leaderboard and renders it. No build step.
-const API = window.KR_API || localStorage.getItem("kr_api") || "http://localhost:8787";
-document.getElementById("apihint").textContent = API;
+import { MatchPlayer } from "./match.js";
 
+const API = window.KR_API || localStorage.getItem("kr_api") || "http://localhost:8787";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const MEDAL = ["🥇", "🥈", "🥉"];
 
+$("apihint").textContent = API;
+
+const player = new MatchPlayer($("pitch"));
+player.onTick = (i, n) => {
+  $("scrub").max = String(Math.max(0, n - 1));
+  $("scrub").value = String(i);
+  if (player.replay) {
+    const f = player.replay.frames[i];
+    $("ttime").textContent = (f.t * player.meta.dt).toFixed(1) + "s";
+    $("theaterScore").innerHTML =
+      `<b class="cH">${esc(player.names.home)}</b> ${f.score.home} – ${f.score.away} <b class="cA">${esc(player.names.away)}</b>`;
+  }
+  $("pp").textContent = player.playing ? "⏸" : "▶";
+};
+
+let bots = [];
+let firstLoad = true;
+
 async function refresh() {
   try {
     const res = await fetch(`${API}/api/leaderboard`, { cache: "no-store" });
-    const data = await res.json();
-    render(data.bots || []);
+    bots = (await res.json()).bots || [];
+    renderBoard();
+    syncSelects();
     $("conn").textContent = "● live";
     $("conn").classList.add("ok");
+    if (firstLoad && bots.length >= 2) {
+      firstLoad = false;
+      $("homeSel").value = bots[0].name;
+      $("awaySel").value = bots[1].name;
+      watch();
+    }
   } catch {
-    $("conn").textContent = "○ can't reach the arena — is it running?";
+    $("conn").textContent = "○ can't reach the arena — run `npm run api`";
     $("conn").classList.remove("ok");
   }
 }
 
-function render(bots) {
+function renderBoard() {
   $("count").textContent = `${bots.length} bots`;
-  const maxElo = Math.max(1, ...bots.map((b) => b.elo));
-  const minElo = Math.min(...bots.map((b) => b.elo));
-  const span = Math.max(1, maxElo - minElo);
-
+  const elos = bots.map((b) => b.elo);
+  const max = Math.max(1, ...elos), min = Math.min(...elos), span = Math.max(1, max - min);
   $("rows").innerHTML = bots
     .map((b, i) => {
       const isUser = b.kind === "user";
       const medal = i < 3 ? MEDAL[i] : i + 1;
-      const rankClass = i < 3 ? `rank m${i + 1}` : "rank";
-      const owner = isUser ? `@${esc(b.handle)}` : "house";
       const pill = isUser ? `<span class="pill you">you</span>` : `<span class="pill lib">house</span>`;
       const wdl = b.record ? `${b.record.wins}-${b.record.draws}-${b.record.losses}` : "—";
-      const fill = Math.round(((b.elo - minElo) / span) * 100);
+      const fill = Math.round(((b.elo - min) / span) * 100);
       const blurb = b.blurb ? `<div class="blurb">${esc(b.blurb)}</div>` : "";
-      return `
-        <li class="row ${isUser ? "you" : ""}">
-          <div class="${rankClass}">${medal}</div>
-          <div class="who">
-            <div class="name">${esc(b.name)} ${pill}</div>
-            <div class="owner">${owner} · <span class="wdl">${wdl}</span></div>
-            ${blurb}
-          </div>
-          <div class="stat">
-            <div class="elo">${b.elo}</div>
-            <div class="elobar"><span style="width:${fill}%"></span></div>
-          </div>
-        </li>`;
+      return `<li class="row ${isUser ? "you" : ""}" data-name="${esc(b.name)}">
+        <div class="rank ${i < 3 ? "m" + (i + 1) : ""}">${medal}</div>
+        <div class="who"><div class="name">${esc(b.name)} ${pill}</div>
+          <div class="owner">${isUser ? "@" + esc(b.handle) : "house"} · <span class="wdl">${wdl}</span></div>${blurb}</div>
+        <div class="stat"><div class="elo">${b.elo}</div><div class="elobar"><span style="width:${fill}%"></span></div></div>
+      </li>`;
     })
     .join("");
+  for (const li of document.querySelectorAll(".row")) {
+    li.addEventListener("click", () => pickMatchup(li.dataset.name));
+  }
 }
 
+function syncSelects() {
+  for (const sel of [$("homeSel"), $("awaySel")]) {
+    const keep = sel.value;
+    sel.innerHTML = bots.map((b) => `<option value="${esc(b.name)}">${esc(b.name)} · ${b.elo}</option>`).join("");
+    if (bots.some((b) => b.name === keep)) sel.value = keep;
+  }
+}
+
+function pickMatchup(name) {
+  $("homeSel").value = name;
+  if ($("awaySel").value === name) {
+    const other = bots.find((b) => b.name !== name);
+    if (other) $("awaySel").value = other.name;
+  }
+  watch();
+  document.querySelector(".theater").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+async function watch() {
+  const home = $("homeSel").value, away = $("awaySel").value, seed = $("seedInput").value || 1;
+  if (!home || !away) return;
+  $("theaterScore").textContent = "running…";
+  try {
+    const res = await fetch(`${API}/api/watch?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&seed=${seed}`);
+    const data = await res.json();
+    if (!res.ok) { $("theaterScore").textContent = data.error || "match failed"; return; }
+    player.load(data.replay, { home: data.home.name, away: data.away.name });
+  } catch {
+    $("theaterScore").textContent = "couldn't run the match";
+  }
+}
+
+$("watchBtn").addEventListener("click", watch);
+$("pp").addEventListener("click", () => player.toggle());
+$("scrub").addEventListener("input", () => player.seek(Number($("scrub").value)));
+$("speedSel").addEventListener("change", () => (player.speed = Number($("speedSel").value)));
+
 refresh();
-setInterval(refresh, 4000);
+setInterval(refresh, 6000);

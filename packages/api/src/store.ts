@@ -11,18 +11,25 @@ export interface BotRecord {
   elo: number;
   record?: { wins: number; draws: number; losses: number };
   blurb?: string;
+  /** Brain source — kept server-side so any matchup can be replayed; never listed. */
+  source: string;
   createdAt: number;
 }
 
+/** Public view of a bot (no source). */
+export type PublicBot = Omit<BotRecord, "source">;
+
 /**
- * Persistence behind a tiny interface so we can swap the local JSON store for
- * Postgres in production without touching the server. One active bot per user
- * handle (a resubmit replaces it).
+ * Persistence behind a tiny interface so the local JSON store can be swapped for
+ * Postgres in production without touching the server. One active bot per handle.
  */
 export interface Store {
-  leaderboard(): BotRecord[];
-  upsertUserBot(input: { handle: string; name: string; elo: number; record?: BotRecord["record"] }): BotRecord;
+  leaderboard(): PublicBot[];
+  find(idOrName: string): BotRecord | undefined;
+  upsertUserBot(input: { handle: string; name: string; elo: number; source: string; record?: BotRecord["record"] }): BotRecord;
 }
+
+const strip = ({ source: _s, ...rest }: BotRecord): PublicBot => rest;
 
 export class JsonStore implements Store {
   private bots: BotRecord[] = [];
@@ -38,6 +45,7 @@ export class JsonStore implements Store {
         kind: "library" as const,
         elo: b.elo,
         blurb: b.blurb,
+        source: b.source,
         createdAt: 0,
       }));
       this.save();
@@ -49,11 +57,15 @@ export class JsonStore implements Store {
     writeFileSync(this.file, JSON.stringify(this.bots, null, 2));
   }
 
-  leaderboard(): BotRecord[] {
-    return [...this.bots].sort((a, b) => b.elo - a.elo);
+  leaderboard(): PublicBot[] {
+    return [...this.bots].sort((a, b) => b.elo - a.elo).map(strip);
   }
 
-  upsertUserBot(input: { handle: string; name: string; elo: number; record?: BotRecord["record"] }): BotRecord {
+  find(idOrName: string): BotRecord | undefined {
+    return this.bots.find((b) => b.id === idOrName || b.name === idOrName);
+  }
+
+  upsertUserBot(input: { handle: string; name: string; elo: number; source: string; record?: BotRecord["record"] }): BotRecord {
     const id = `user-${input.handle}`;
     const existing = this.bots.find((b) => b.id === id);
     const rec: BotRecord = {
@@ -63,6 +75,7 @@ export class JsonStore implements Store {
       kind: "user",
       elo: input.elo,
       record: input.record,
+      source: input.source,
       createdAt: existing?.createdAt ?? Date.now(),
     };
     if (existing) Object.assign(existing, rec);

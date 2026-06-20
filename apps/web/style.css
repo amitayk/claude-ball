@@ -47,6 +47,29 @@ code { background: #0e1116; border: 1px solid var(--line); border-radius: 5px; p
 .conn { margin-top: 16px; font-size: 12px; color: var(--muted); }
 .conn.ok { color: var(--accent); }
 
+.theater {
+  position: relative; z-index: 1; max-width: 1080px; margin: 0 auto 18px; padding: 16px;
+}
+.matchup { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
+.matchup .vs { color: var(--muted); }
+.sel, .seed input, #speedSel {
+  background: #0e1116; color: var(--text); border: 1px solid var(--line);
+  border-radius: 8px; padding: 7px 9px; font: inherit;
+}
+.sel.home { border-color: rgba(79,157,255,0.5); }
+.sel.away { border-color: rgba(255,122,89,0.5); }
+.seed input { width: 64px; }
+.seed { color: var(--muted); font-size: 12.5px; display: flex; align-items: center; gap: 6px; }
+button.primary { background: var(--accent); color: #06210f; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; cursor: pointer; }
+button.primary:hover { filter: brightness(1.08); }
+.tscore { margin-left: auto; font-size: 17px; font-variant-numeric: tabular-nums; }
+.tscore .cH { color: var(--home); } .tscore .cA { color: var(--away); }
+.stagewrap { display: flex; justify-content: center; }
+.theater canvas { width: auto; height: auto; max-width: 100%; max-height: 60vh; border-radius: 10px; background: #14532d; }
+.controls { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.controls input[type="range"] { flex: 1; }
+.controls button { background: #21262d; color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 6px 12px; cursor: pointer; }
+
 main {
   position: relative; z-index: 1;
   max-width: 1080px; margin: 0 auto; padding: 8px 20px 40px;

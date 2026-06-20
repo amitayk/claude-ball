@@ -1,5 +1,6 @@
 import { createServer, type ServerResponse } from "node:http";
 import { placeBrainSource } from "@kr/ladder";
+import { runSandboxedMatch } from "@kr/arena";
 import { JsonStore } from "./store.js";
 
 const store = new JsonStore(process.env.KR_DATA ?? ".data/arena.json");
@@ -24,6 +25,26 @@ const server = createServer((req, res) => {
     return json(res, 200, { bots: store.leaderboard() });
   }
 
+  // Watch any matchup: run it on demand (deterministic, sandboxed) and return
+  // the replay. ?home=<name|id>&away=<name|id>&seed=<n>
+  if (req.method === "GET" && url === "/api/watch") {
+    const q = new URLSearchParams((req.url ?? "").split("?")[1] ?? "");
+    const home = store.find(q.get("home") ?? "");
+    const away = store.find(q.get("away") ?? "");
+    const seed = Number(q.get("seed") ?? "1") || 1;
+    if (!home || !away) return json(res, 404, { error: "unknown bot(s)" });
+    runSandboxedMatch(home.source, away.source, { seed }).then((r) => {
+      if (!r.ok || !r.result) return json(res, 400, { error: r.fault?.message ?? "match failed" });
+      return json(res, 200, {
+        home: { name: home.name, handle: home.handle, kind: home.kind },
+        away: { name: away.name, handle: away.handle, kind: away.kind },
+        seed,
+        replay: r.result,
+      });
+    });
+    return;
+  }
+
   if (req.method === "POST" && url === "/api/submit") {
     let body = "";
     req.on("data", (c) => (body += c));
@@ -41,8 +62,8 @@ const server = createServer((req, res) => {
         // becomes a queued job so submits return immediately (see DEPLOYMENT.md).
         const placement = await placeBrainSource(source, { seeds: PLACEMENT_SEEDS });
         if (!placement.ok) return json(res, 400, { error: placement.error });
-        const bot = store.upsertUserBot({ handle, name, elo: placement.rating!, record: placement.record });
-        return json(res, 200, { bot, placement });
+        const bot = store.upsertUserBot({ handle, name, elo: placement.rating!, source, record: placement.record });
+        return json(res, 200, { bot: { ...bot, source: undefined }, placement });
       } catch (err) {
         return json(res, 400, { error: err instanceof Error ? err.message : String(err) });
       }
