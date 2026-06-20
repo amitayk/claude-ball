@@ -2,11 +2,11 @@ import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import * as esbuild from "esbuild";
-import type { MatchResult, RunOptions } from "@kr/engine";
+import type { MatchResult, RunOptions } from "@claude-ball/engine";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
-/** Bundle the worker once (esbuild inlines @kr/engine → plain CJS we can eval). */
+/** Bundle the worker once (esbuild inlines @claude-ball/engine → plain CJS we can eval). */
 let workerCode: Promise<string> | null = null;
 function getWorkerCode(): Promise<string> {
   if (!workerCode) {
@@ -25,7 +25,7 @@ function getWorkerCode(): Promise<string> {
 
 /**
  * Bundle a brain's source (TS) into a single self-contained IIFE that assigns
- * the module's exports to `__brain`. Resolves `@kr/brain-api` from the monorepo.
+ * the module's exports to `__brain`. Resolves `@claude-ball/brain-api` from the monorepo.
  * Throwing here means the brain doesn't compile.
  */
 const bundleCache = new Map<string, Promise<string>>();

@@ -1,4 +1,4 @@
-# cladu-regel ⚽
+# claude-ball ⚽
 
 A vibe-coding soccer game. As a **coach**, you design a team's **brain** — its
 tactics — and your AI assistant writes the code. The twist: **the coach owns all
@@ -8,19 +8,19 @@ the thinking; the AI is only allowed to code** (see
 Two team brains play a deterministic 2D match. Whoever designed the smarter
 strategy wins. The dots on the pitch are **players**.
 
-> **🏟 The arena is LIVE: https://cladu-regel.fly.dev** — watch any matchup and
+> **🏟 The arena is LIVE: https://claude-ball.fly.dev** — watch any matchup and
 > see the leaderboard. Build a brain and `npm run submit` to climb it.
 
 ## Compete
 
 ```bash
-git clone https://github.com/amitayk/cladu-regel && cd cladu-regel && npm install
+git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install
 cd laika                       # your brain dir (or copy templates/brain-starter)
 npm run coach                  # build & test in the workbench (open Claude here)
 KR_HANDLE=you npm run submit   # upload your brain → it's placed on the live ladder
 ```
 
-Then watch it play at https://cladu-regel.fly.dev.
+Then watch it play at https://claude-ball.fly.dev.
 
 > **Status: Phase 4 (live MVP)** — deterministic engine, coach workbench, a
 > sandboxed arena that runs untrusted brains, an Elo ladder, and a deployed
@@ -77,12 +77,12 @@ rendering and I/O live outside it.
 
 | Package | Role |
 |---|---|
-| [`@kr/brain-api`](packages/brain-api) | **The public contract.** `Brain`, `WorldView`, `Intent`, vector helpers. Zero dependencies. |
-| [`@kr/engine`](packages/engine) | Deterministic simulation: physics, possession, goals, match loop, replay recording. |
-| [`@kr/brains`](packages/brains) | Library opponents (chaser, formation, flow, blitz, possession) with a round-robin skill (0–100) + blurb. |
-| [`@kr/runner`](packages/runner) | CLI: load two brains, run a match, write a replay. |
-| [`@kr/viewer`](packages/viewer) | Zero-build browser replay player (canvas). |
-| [`@kr/coach`](packages/coach) | Live coach workbench: dev server (SSE + hot reload), field, control panel, git versions UI. |
+| [`@claude-ball/brain-api`](packages/brain-api) | **The public contract.** `Brain`, `WorldView`, `Intent`, vector helpers. Zero dependencies. |
+| [`@claude-ball/engine`](packages/engine) | Deterministic simulation: physics, possession, goals, match loop, replay recording. |
+| [`@claude-ball/brains`](packages/brains) | Library opponents (chaser, formation, flow, blitz, possession) with a round-robin skill (0–100) + blurb. |
+| [`@claude-ball/runner`](packages/runner) | CLI: load two brains, run a match, write a replay. |
+| [`@claude-ball/viewer`](packages/viewer) | Zero-build browser replay player (canvas). |
+| [`@claude-ball/coach`](packages/coach) | Live coach workbench: dev server (SSE + hot reload), field, control panel, git versions UI. |
 | [`templates/brain-starter`](templates/brain-starter) | What a coach clones to write their own brain. |
 
 The boundary that matters: **a brain only ever receives a read-only `WorldView`

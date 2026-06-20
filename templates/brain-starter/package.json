@@ -1,9 +1,9 @@
 {
-  "name": "@kr/brain-starter",
+  "name": "@claude-ball/brain-starter",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Your cladu-regel team brain. You design the tactics; your AI assistant only codes.",
+  "description": "Your claude-ball team brain. You design the tactics; your AI assistant only codes.",
   "scripts": {
     "coach": "tsx ../../packages/coach/src/server.ts",
     "match": "tsx play.ts",
@@ -13,10 +13,10 @@
     "submit": "tsx submit.ts"
   },
   "dependencies": {
-    "@kr/brain-api": "0.1.0",
-    "@kr/brains": "0.1.0",
-    "@kr/coach": "0.1.0",
-    "@kr/engine": "0.1.0"
+    "@claude-ball/brain-api": "0.1.0",
+    "@claude-ball/brains": "0.1.0",
+    "@claude-ball/coach": "0.1.0",
+    "@claude-ball/engine": "0.1.0"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

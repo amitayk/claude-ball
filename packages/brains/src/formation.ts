@@ -1,5 +1,5 @@
-import type { Brain, PlayerView, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
-import { dist, kickoffBackPass } from "@kr/brain-api";
+import type { Brain, PlayerView, TeamIntent, Vec2, WorldView } from "@claude-ball/brain-api";
+import { dist, kickoffBackPass } from "@claude-ball/brain-api";
 
 /**
  * STRATEGY (human-designed):

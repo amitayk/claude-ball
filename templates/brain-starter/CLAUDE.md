@@ -1,6 +1,6 @@
 # CLAUDE.md — Rules of the Game
 
-You are assisting a **coach** competing in **cladu-regel**, a soccer-brain coding
+You are assisting a **coach** competing in **claude-ball**, a soccer-brain coding
 game. The coach designs the tactics; you write the code. The 11 dots moving on
 the pitch are **players**; the human you're working with is the **coach**.
 
@@ -66,7 +66,7 @@ unrelated edits.
 ## What you're implementing
 
 The coach's team brain lives in `src/brain.ts` and implements the `Brain`
-interface from `@kr/brain-api`. Each tick the engine calls `decide(view, params)`
+interface from `@claude-ball/brain-api`. Each tick the engine calls `decide(view, params)`
 and you return an `Intent` for each player. The engine owns all physics; the
 brain only observes (`WorldView`) and commands (`Intent`).
 

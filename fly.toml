@@ -5,7 +5,7 @@
 # re-add the [mounts] block below:
 #   fly volumes create kr_data --size 1 --region ams
 #   (then set KR_DATA=/data/arena.json and uncomment [mounts])
-app = "cladu-regel"
+app = "claude-ball"
 primary_region = "ams"
 
 [build]

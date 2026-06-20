@@ -3,9 +3,9 @@ import { existsSync, mkdirSync, readFileSync, watch, writeFileSync } from "node:
 import { readFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Brain, ParamValues } from "@kr/brain-api";
-import { resolveParams } from "@kr/brain-api";
-import { runMatch, type MatchResult } from "@kr/engine";
+import type { Brain, ParamValues } from "@claude-ball/brain-api";
+import { resolveParams } from "@claude-ball/brain-api";
+import { runMatch, type MatchResult } from "@claude-ball/engine";
 import { importBrainFile, listOpponents, loadOpponent, SELF_OPPONENT } from "./brains.js";
 import * as git from "./git.js";
 
@@ -259,7 +259,7 @@ async function main() {
   watchSrc();
   server.listen(port, () => {
     const name = coachBrain?.name ?? "your brain";
-    console.log(`\n  ⚽ cladu-regel coach — ${name} vs ${opponentName}`);
+    console.log(`\n  ⚽ claude-ball coach — ${name} vs ${opponentName}`);
     console.log(`     open http://localhost:${port}`);
     console.log(`     edit src/brain.ts and the match re-runs automatically\n`);
   });

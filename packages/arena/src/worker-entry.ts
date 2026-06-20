@@ -1,6 +1,6 @@
 import vm from "node:vm";
 import { parentPort, workerData } from "node:worker_threads";
-import { runMatch } from "@kr/engine";
+import { runMatch } from "@claude-ball/engine";
 
 /**
  * Runs inside a worker thread (bundled to plain JS by esbuild, so no tsx needed).

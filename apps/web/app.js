@@ -1,4 +1,12 @@
 import { MatchPlayer } from "./match.js";
+import { BRAND } from "./brand.js";
+
+// Brand the page from one const.
+document.title = `${BRAND} · the arena`;
+{
+  const logo = document.querySelector(".logo");
+  if (logo) logo.textContent = `⚽ ${BRAND}`;
+}
 
 // API base: ?api=<url> (persisted) > window.KR_API > saved > localhost. Lets the
 // static web app be deployed once and pointed at any arena.

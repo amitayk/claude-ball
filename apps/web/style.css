@@ -1,18 +1,18 @@
 :root {
   color-scheme: dark;
-  /* "floodlit pitch at night" — warm charcoal-green, amber accent. */
-  --bg: #0d100e;
-  --panel: #171c1a;
-  --card: #1b211e;
-  --line: #2d342f;
-  --text: #eef2ee;
-  --muted: #94a09a;
-  --home: #4f9dff;
-  --away: #ff7a59;
-  --accent: #f4c245;      /* amber / stadium light */
-  --accent-ink: #2a1e02;  /* text on amber */
-  --pitch: #2f9e6e;       /* turf green */
-  --gold: #f4c245;
+  /* "Chalk & Pitch" — dark turf, chalk-white text, tangerine accent. */
+  --bg: #0c1210;
+  --panel: #141d18;
+  --card: #141d18;
+  --line: #243029;
+  --text: #f1efe6;        /* chalk */
+  --muted: #9aa79c;
+  --home: #4f9dff;        /* home team */
+  --away: #ffd24a;        /* away team */
+  --accent: #ff7a3c;      /* tangerine */
+  --accent-ink: #241003;  /* text on accent */
+  --pitch: #2d8a5a;       /* turf green */
+  --gold: #ffcf5a;
   --silver: #c8d2dc;
   --bronze: #e0986a;
 }
@@ -137,11 +137,11 @@ main {
 /* copy-friendly command blocks (orangeish, never wrap mid-command) */
 .cmd {
   display: block; margin-top: 6px; padding: 8px 10px; border-radius: 8px;
-  background: #0e1311; border: 1px solid var(--line); color: var(--away);
+  background: #0e1311; border: 1px solid var(--line); color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
   white-space: nowrap; overflow-x: auto; cursor: copy; position: relative;
 }
-.cmd:hover { border-color: rgba(255,122,89,0.45); }
+.cmd:hover { border-color: var(--accent); }
 .cmd::after { content: "copy"; position: absolute; right: 8px; top: 7px; font-size: 10px; color: var(--muted); background: var(--card); padding: 0 4px; }
 .cmd.copied::after { content: "copied ✓"; color: var(--accent); }
 

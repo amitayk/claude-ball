@@ -11,7 +11,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
-const api = process.env.KR_API ?? "https://cladu-regel.fly.dev";
+const api = process.env.KR_API ?? "https://claude-ball.fly.dev";
 const handle = process.env.KR_HANDLE ?? "me";
 const source = readFileSync("src/brain.ts", "utf8");
 const name = source.match(/name:\s*["'`]([^"'`]+)["'`]/)?.[1] ?? basename(resolve("."));

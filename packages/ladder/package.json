@@ -1,12 +1,12 @@
 {
-  "name": "@kr/ladder",
+  "name": "@claude-ball/ladder",
   "version": "0.1.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@kr/arena": "0.1.0",
-    "@kr/brains": "0.1.0"
+    "@claude-ball/arena": "0.1.0",
+    "@claude-ball/brains": "0.1.0"
   }
 }

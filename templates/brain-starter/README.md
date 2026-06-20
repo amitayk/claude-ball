@@ -1,4 +1,4 @@
-# Your cladu-regel team
+# Your claude-ball team
 
 You're the **coach**: you design the tactics. Your AI assistant writes the code —
 and **only** the code (read [`CLAUDE.md`](CLAUDE.md); that constraint is the

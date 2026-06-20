@@ -1,4 +1,4 @@
-import type { Brain } from "@kr/brain-api";
+import type { Brain } from "@claude-ball/brain-api";
 import { chaser } from "./chaser.js";
 import { formation } from "./formation.js";
 import { flow } from "./flow.js";

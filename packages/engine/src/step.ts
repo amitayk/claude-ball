@@ -1,4 +1,4 @@
-import type { Intent, PlayerView, Side, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
+import type { Intent, PlayerView, Side, TeamIntent, Vec2, WorldView } from "@claude-ball/brain-api";
 import { RULES } from "./constants.js";
 import type { Rng } from "./rng.js";
 import { goalMouth, kickoff, type PlayerState, type WorldState } from "./world.js";

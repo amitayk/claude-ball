@@ -1,5 +1,5 @@
 {
-  "name": "cladu-regel",
+  "name": "claude-ball",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,7 +10,7 @@
     "laika"
   ],
   "scripts": {
-    "coach": "npm run coach --workspace @kr/brain-starter",
+    "coach": "npm run coach --workspace @claude-ball/brain-starter",
     "match": "tsx packages/runner/src/cli.ts",
     "viewer": "tsx packages/viewer/serve.ts",
     "demo": "npm run match -- formation chaser --seed 7 --out packages/viewer/replay.json && npm run viewer",

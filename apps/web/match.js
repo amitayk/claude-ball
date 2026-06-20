@@ -1,7 +1,7 @@
 // Standalone replay player for the arena web app. Renders a MatchResult onto a
 // canvas with playback + the same juice as the coach viewer (ball modes, halos,
 // kickoff, direction labels). One instance drives one canvas.
-const COLORS = { home: "#4f9dff", away: "#ff7a59", ball: "#fff", line: "rgba(255,255,255,0.22)" };
+const COLORS = { home: "#4f9dff", away: "#ffd24a", ball: "#fff", line: "rgba(255,255,255,0.22)" };
 const PLAYER_R = 12;
 
 export class MatchPlayer {

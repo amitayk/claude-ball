@@ -4,7 +4,7 @@
  * to 0–100. Run with `npx tsx packages/brains/tournament.ts` and paste the
  * resulting skill numbers into the catalog in src/index.ts.
  */
-import { runMatch } from "@kr/engine";
+import { runMatch } from "@claude-ball/engine";
 import { catalog } from "./src/index.js";
 
 const SEEDS = Number(process.env.SEEDS ?? 6);

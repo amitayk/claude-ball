@@ -1,3 +1,7 @@
+import { BRAND } from "./brand.js";
+document.title = `${BRAND} · admin`;
+{ const logo = document.querySelector(".logo"); if (logo) logo.textContent = `⚽ ${BRAND}`; }
+
 const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
 const API = window.KR_API ?? (isLocal ? "http://localhost:8787" : "");
 const $ = (id) => document.getElementById(id);

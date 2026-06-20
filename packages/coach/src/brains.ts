@@ -1,7 +1,7 @@
 import { isAbsolute, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Brain } from "@kr/brain-api";
-import { brains as builtins, catalog } from "@kr/brains";
+import type { Brain } from "@claude-ball/brain-api";
+import { brains as builtins, catalog } from "@claude-ball/brains";
 
 let importCounter = 0;
 

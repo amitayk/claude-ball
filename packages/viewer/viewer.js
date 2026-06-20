@@ -7,7 +7,7 @@ const timeEl = document.getElementById("time");
 const playBtn = document.getElementById("playpause");
 const speedSel = document.getElementById("speed");
 
-const COLORS = { home: "#4f9dff", away: "#ff7a59", ball: "#ffffff", line: "rgba(255,255,255,0.25)" };
+const COLORS = { home: "#4f9dff", away: "#ffd24a", ball: "#ffffff", line: "rgba(255,255,255,0.25)" };
 
 let replay = null;
 let frameIdx = 0;

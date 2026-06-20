@@ -1,13 +1,13 @@
 {
-  "name": "@kr/coach",
+  "name": "@claude-ball/coach",
   "version": "0.1.0",
   "type": "module",
   "exports": {
     ".": "./src/server.ts"
   },
   "dependencies": {
-    "@kr/brain-api": "0.1.0",
-    "@kr/brains": "0.1.0",
-    "@kr/engine": "0.1.0"
+    "@claude-ball/brain-api": "0.1.0",
+    "@claude-ball/brains": "0.1.0",
+    "@claude-ball/engine": "0.1.0"
   }
 }

@@ -1,4 +1,4 @@
-# cladu-regel — Production Deployment Plan
+# claude-ball — Production Deployment Plan
 
 Goal: anyone can clone a tiny repo, write a team brain with Claude (under the
 "human thinks, AI codes" constraint), submit it, and have it climb a ladder
@@ -37,7 +37,7 @@ Matches stay **deterministic** (seeded), so any result can be re-verified by
 re-running, and replays are reproducible.
 
 Brains are submitted as **source**; the server bundles each (esbuild, inlining
-`@kr/brain-api`) into one self-contained module, then runs it in the isolate.
+`@claude-ball/brain-api`) into one self-contained module, then runs it in the isolate.
 
 ## Architecture
 
@@ -96,7 +96,7 @@ ratings fresh. Deterministic matches → fully auditable.
 
 ## Rollout phases
 
-- **P0 — Arena keystone (local, no cloud): IN PROGRESS.** `@kr/arena` runs two
+- **P0 — Arena keystone (local, no cloud): IN PROGRESS.** `@claude-ball/arena` runs two
   brains *from source* in isolates, deterministically, with limits. Proves the
   security model. ← building now.
 - **P1 — Single-box MVP.** One small server: API + Postgres + a few arena

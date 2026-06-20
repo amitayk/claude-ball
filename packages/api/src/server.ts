@@ -3,8 +3,8 @@ import { createServer, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
-import { placeBrainSource } from "@kr/ladder";
-import { runSandboxedMatch } from "@kr/arena";
+import { placeBrainSource } from "@claude-ball/ladder";
+import { runSandboxedMatch } from "@claude-ball/arena";
 import { JsonStore } from "./store.js";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -138,7 +138,7 @@ const server = createServer((req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`\n  🏟  cladu-regel arena API on http://localhost:${port}`);
+  console.log(`\n  🏟  claude-ball arena API on http://localhost:${port}`);
   console.log(`     GET  /api/leaderboard`);
   console.log(`     POST /api/submit  { handle, name, source }\n`);
 });

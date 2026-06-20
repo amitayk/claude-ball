@@ -1,4 +1,4 @@
-import type { Side, Vec2 } from "@kr/brain-api";
+import type { Side, Vec2 } from "@claude-ball/brain-api";
 import { RULES } from "./constants.js";
 import type { Rng } from "./rng.js";
 

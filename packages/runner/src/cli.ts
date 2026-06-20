@@ -1,9 +1,9 @@
 import { writeFileSync } from "node:fs";
 import { resolve, isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Brain } from "@kr/brain-api";
-import { runMatch } from "@kr/engine";
-import { brains } from "@kr/brains";
+import type { Brain } from "@claude-ball/brain-api";
+import { runMatch } from "@claude-ball/engine";
+import { brains } from "@claude-ball/brains";
 
 interface Args {
   home: string;

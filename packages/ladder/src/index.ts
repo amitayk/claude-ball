@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { runSandboxedMatch, bundleBrain } from "@kr/arena";
-import { catalog } from "@kr/brains";
+import { runSandboxedMatch, bundleBrain } from "@claude-ball/arena";
+import { catalog } from "@claude-ball/brains";
 import { skillToElo, updateRating } from "./elo.js";
 
 export { expectedScore, updateRating, skillToElo } from "./elo.js";

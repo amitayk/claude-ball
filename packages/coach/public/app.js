@@ -4,7 +4,7 @@ const $ = (id) => document.getElementById(id);
 const canvas = $("pitch");
 const ctx = canvas.getContext("2d");
 
-const COLORS = { home: "#4f9dff", away: "#ff7a59", ball: "#fff", line: "rgba(255,255,255,0.22)" };
+const COLORS = { home: "#4f9dff", away: "#ffd24a", ball: "#fff", line: "rgba(255,255,255,0.22)" };
 
 let replay = null;
 let meta = null;

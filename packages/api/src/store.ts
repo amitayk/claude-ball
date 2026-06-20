@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
-import { libraryBots } from "@kr/ladder";
+import { libraryBots } from "@claude-ball/ladder";
 
 export interface BotRecord {
   id: string;

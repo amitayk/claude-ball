@@ -1,5 +1,5 @@
-import type { Brain, ParamValues, Side, TeamIntent } from "@kr/brain-api";
-import { resolveParams } from "@kr/brain-api";
+import type { Brain, ParamValues, Side, TeamIntent } from "@claude-ball/brain-api";
+import { resolveParams } from "@claude-ball/brain-api";
 import { RULES } from "./constants.js";
 import { Rng } from "./rng.js";
 import { kickoff, type WorldState } from "./world.js";

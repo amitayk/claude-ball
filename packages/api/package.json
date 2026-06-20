@@ -1,11 +1,11 @@
 {
-  "name": "@kr/api",
+  "name": "@claude-ball/api",
   "version": "0.1.0",
   "type": "module",
   "exports": {
     ".": "./src/server.ts"
   },
   "dependencies": {
-    "@kr/ladder": "0.1.0"
+    "@claude-ball/ladder": "0.1.0"
   }
 }

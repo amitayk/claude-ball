@@ -1,5 +1,5 @@
-import type { Brain, ParamValues, PlayerView, TeamIntent, Vec2, WorldView } from "@kr/brain-api";
-import { kickoffBackPass } from "@kr/brain-api";
+import type { Brain, ParamValues, PlayerView, TeamIntent, Vec2, WorldView } from "@claude-ball/brain-api";
+import { kickoffBackPass } from "@claude-ball/brain-api";
 
 /**
  * ┌────────────────────────────────────────────────────────────────────┐
