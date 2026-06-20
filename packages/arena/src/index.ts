@@ -28,16 +28,25 @@ function getWorkerCode(): Promise<string> {
  * the module's exports to `__brain`. Resolves `@kr/brain-api` from the monorepo.
  * Throwing here means the brain doesn't compile.
  */
+const bundleCache = new Map<string, Promise<string>>();
+
 export async function bundleBrain(source: string): Promise<string> {
-  const r = await esbuild.build({
-    stdin: { contents: source, loader: "ts", resolveDir: here },
-    bundle: true,
-    format: "iife",
-    globalName: "__brain",
-    platform: "neutral",
-    write: false,
-  });
-  return r.outputFiles[0]!.text;
+  const cached = bundleCache.get(source);
+  if (cached) return cached;
+  const p = esbuild
+    .build({
+      stdin: { contents: source, loader: "ts", resolveDir: here },
+      bundle: true,
+      format: "iife",
+      globalName: "__brain",
+      platform: "neutral",
+      write: false,
+    })
+    .then((r) => r.outputFiles[0]!.text);
+  bundleCache.set(source, p);
+  // Don't cache failures.
+  p.catch(() => bundleCache.delete(source));
+  return p;
 }
 
 export interface SandboxOptions extends RunOptions {
