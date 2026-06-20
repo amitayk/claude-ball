@@ -29,7 +29,8 @@ primary_region = "ams"
   cpus = 2
   memory = "1gb"
 
-# Persistent ladder store — enable once you've created the volume (see top):
-# [mounts]
-#   source = "kr_data"
-#   destination = "/data"
+# Persistent ladder store on a volume (single machine; swap for Postgres to
+# scale horizontally — see DEPLOYMENT.md).
+[mounts]
+  source = "kr_data"
+  destination = "/data"
