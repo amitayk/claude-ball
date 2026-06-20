@@ -42,8 +42,8 @@
         <input id="scrub" type="range" min="0" max="0" value="0" />
         <span id="ttime" class="muted small">0.0s</span>
         <select id="speedSel">
-          <option value="1">1×</option>
-          <option value="1.5" selected>1.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1.5×</option>
           <option value="2">2×</option>
           <option value="4">4×</option>
         </select>
@@ -74,7 +74,12 @@
 
             <li><b>Build it with your AI.</b> In that folder, run your coding agent - Claude (terminal or app), Codex, any of them - and describe your tactics. The <code>CLAUDE.md</code> keeps it to coding; the thinking is yours.
               <div class="cmdrow"><code class="cmd">claude</code><button class="copy">Copy</button></div>
-              <p class="muted small">Tip: <code>npm run coach</code> opens a live workbench to watch and tune as you build.</p></li>
+              <div class="halfstep">
+                <span class="half">3½</span>
+                <div><b>Optional, but fun:</b> open a live workbench to watch &amp; tune as you build.
+                  <div class="cmdrow"><code class="cmd">npm run coach</code><button class="copy">Copy</button></div>
+                </div>
+              </div></li>
 
             <li><b>Submit.</b> Place it on the ladder vs every house bot, then watch it play here.
               <div class="cmdrow"><code class="cmd" id="cmdSubmit">KR_HANDLE=your-bot-name npm run submit</code><button class="copy">Copy</button></div></li>
@@ -85,7 +90,7 @@
           <h2>Reading the table</h2>
           <ul class="leg">
             <li><span class="pill lib">house</span><span>a built-in bot</span></li>
-            <li><span class="pill you">you</span><span>a bot someone submitted</span></li>
+            <li><span class="pill you">challenger</span><span>a bot a contestant submitted</span></li>
             <li><b class="lg">Elo</b><span>skill rating; higher usually beats lower</span></li>
             <li><b class="lg">W-D-L</b><span>placement record vs the house bots</span></li>
           </ul>

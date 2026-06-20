@@ -17,6 +17,7 @@ const isLocal = ["localhost", "127.0.0.1"].includes(location.hostname);
 const API = window.KR_API ?? qApi ?? localStorage.getItem("kr_api") ?? (isLocal ? "http://localhost:8787" : "");
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const MEDAL = ["🥇", "🥈", "🥉"];
 
 $("apihint").textContent = API || location.origin;
@@ -48,8 +49,9 @@ async function refresh() {
     $("conn").classList.add("ok");
     if (firstLoad && bots.length >= 2) {
       firstLoad = false;
-      $("homeSel").value = bots[0].name;
-      $("awaySel").value = bots[1].name;
+      const pick = (n, i) => bots.find((b) => b.name === n)?.name ?? bots[i]?.name;
+      $("homeSel").value = pick("blitz", 0);
+      $("awaySel").value = pick("formation", 1);
       watch();
     }
   } catch {
@@ -66,13 +68,13 @@ function renderBoard() {
     .map((b, i) => {
       const isUser = b.kind === "user";
       const medal = i < 3 ? MEDAL[i] : i + 1;
-      const pill = isUser ? `<span class="pill you">you</span>` : `<span class="pill lib">house</span>`;
+      const pill = isUser ? `<span class="pill you">challenger</span>` : `<span class="pill lib">house</span>`;
       const wdl = b.record ? `${b.record.wins}-${b.record.draws}-${b.record.losses}` : "-";
       const fill = Math.round(((b.elo - min) / span) * 100);
       const blurb = b.blurb ? `<div class="blurb">${esc(b.blurb)}</div>` : "";
       return `<li class="row ${isUser ? "you" : ""}" data-name="${esc(b.name)}">
         <div class="rank ${i < 3 ? "m" + (i + 1) : ""}">${medal}</div>
-        <div class="who"><div class="name">${esc(b.name)} ${pill}</div>
+        <div class="who"><div class="name">${esc(cap(b.name))} ${pill}</div>
           <div class="owner">${isUser ? "@" + esc(b.handle) : "house"} · <span class="wdl">${wdl}</span></div>${blurb}</div>
         <div class="stat"><div class="elo">${b.elo}</div><div class="elobar"><span style="width:${fill}%"></span></div></div>
       </li>`;
@@ -86,7 +88,7 @@ function renderBoard() {
 function syncSelects() {
   for (const sel of [$("homeSel"), $("awaySel")]) {
     const keep = sel.value;
-    sel.innerHTML = bots.map((b) => `<option value="${esc(b.name)}">${esc(b.name)} · ${b.elo}</option>`).join("");
+    sel.innerHTML = bots.map((b) => `<option value="${esc(b.name)}">${esc(cap(b.name))} · ${b.elo}</option>`).join("");
     if (bots.some((b) => b.name === keep)) sel.value = keep;
   }
 }
@@ -104,14 +106,21 @@ function pickMatchup(name) {
 async function watch() {
   const home = $("homeSel").value, away = $("awaySel").value, seed = $("seedInput").value || 1;
   if (!home || !away) return;
-  $("theaterScore").textContent = "running…";
+  const btn = $("watchBtn");
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Running…";
+  $("theaterScore").innerHTML = `<span class="loading">running match…</span>`;
   try {
     const res = await fetch(`${API}/api/watch?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&seed=${seed}`);
     const data = await res.json();
     if (!res.ok) { $("theaterScore").textContent = data.error || "match failed"; return; }
-    player.load(data.replay, { home: data.home.name, away: data.away.name });
+    player.load(data.replay, { home: cap(data.home.name), away: cap(data.away.name) });
   } catch {
     $("theaterScore").textContent = "couldn't run the match";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
   }
 }
 
@@ -127,9 +136,9 @@ $("diceBtn").addEventListener("click", () => {
   watch();
 });
 
-// fullscreen the pitch (B)
+// fullscreen the whole theater (field + matchup + score + controls)
 $("fsBtn").addEventListener("click", () => {
-  const el = document.querySelector(".stagewrap");
+  const el = document.querySelector(".theater");
   if (document.fullscreenElement) document.exitFullscreen();
   else el.requestFullscreen?.();
 });

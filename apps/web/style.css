@@ -84,9 +84,14 @@ button.primary:hover { filter: brightness(1.06); }
 .tscore .cH { color: var(--home); } .tscore .cA { color: var(--away); }
 .stagewrap { display: flex; justify-content: center; }
 .theater canvas { width: auto; height: auto; max-width: 100%; max-height: 60vh; border-radius: 10px; background: var(--pitch); }
-/* fullscreen (B): fill the screen, center the pitch */
-.stagewrap:fullscreen { background: #0a0d0b; align-items: center; padding: 2vh; }
-.stagewrap:fullscreen canvas { max-height: 96vh; max-width: 98vw; }
+/* fullscreen: the whole theater (matchup + field + score + controls), not just the pitch */
+.theater:fullscreen { background: #0a0d0b; display: flex; flex-direction: column; gap: 10px; padding: 16px 4vw; overflow: hidden; }
+.theater:fullscreen .matchup { justify-content: center; margin-bottom: 0; }
+.theater:fullscreen .stagewrap { flex: 1; min-height: 0; align-items: center; }
+.theater:fullscreen canvas { max-height: calc(100vh - 150px); max-width: 96vw; }
+.theater:fullscreen .controls { justify-content: center; }
+.loading { color: var(--accent); animation: kbpulse 1s ease-in-out infinite; }
+@keyframes kbpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 .controls { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
 .controls input[type="range"] { flex: 1; accent-color: var(--accent); }
 .controls button { background: #21271f; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
@@ -133,6 +138,9 @@ main {
 .steps { margin: 0; padding-left: 20px; }
 .steps li { margin-bottom: 14px; }
 .steps li b { color: var(--text); }
+.halfstep { display: flex; gap: 10px; align-items: flex-start; margin-top: 10px; padding: 10px 12px; border-left: 3px solid var(--accent); background: rgba(255,122,60,0.07); border-radius: 0 8px 8px 0; }
+.halfstep .half { font-weight: 800; color: var(--accent); font-size: 13px; flex: none; padding-top: 1px; }
+.halfstep b { color: var(--text); }
 
 /* command block + always-visible Copy button (code never wraps mid-command) */
 .cmdrow { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
