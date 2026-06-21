@@ -3,12 +3,25 @@ import { createServer, type ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { IncomingMessage } from "node:http";
 import { placeBrainSource } from "@claude-ball/ladder";
 import { runSandboxedMatch } from "@claude-ball/arena";
 import { JsonStore } from "./store.js";
+import { allow, WorkQueue } from "./limits.js";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
 const ADMIN_TOKEN = process.env.KR_ADMIN_TOKEN ?? "";
+
+// CPU-heavy match work runs through one bounded queue so a flood can't pile up.
+const heavy = new WorkQueue(
+  Number(process.env.KR_HEAVY_CONCURRENCY ?? 2),
+  Number(process.env.KR_HEAVY_MAX_PENDING ?? 24),
+);
+const clientIp = (req: IncomingMessage): string =>
+  (req.headers["fly-client-ip"] as string) ||
+  ((req.headers["x-forwarded-for"] as string) || "").split(",")[0]!.trim() ||
+  req.socket.remoteAddress ||
+  "unknown";
 
 // The API also serves the web UI, so one deploy gives the whole product at one
 // origin (no second host, no CORS in production).
@@ -45,12 +58,16 @@ const server = createServer((req, res) => {
   // Watch any matchup: run it on demand (deterministic, sandboxed) and return
   // the replay. ?home=<name|id>&away=<name|id>&seed=<n>
   if (req.method === "GET" && url === "/api/watch") {
+    if (!allow(`watch:${clientIp(req)}`, 40, 60_000)) {
+      return json(res, 429, { error: "slow down - too many matches; try again in a moment" });
+    }
     const q = new URLSearchParams((req.url ?? "").split("?")[1] ?? "");
     const home = store.find(q.get("home") ?? "");
     const away = store.find(q.get("away") ?? "");
     const seed = Number(q.get("seed") ?? "1") || 1;
     if (!home || !away) return json(res, 404, { error: "unknown bot(s)" });
-    runSandboxedMatch(home.source, away.source, { seed }).then((r) => {
+    if (heavy.full) return json(res, 503, { error: "arena busy - try again in a moment" });
+    heavy.run(() => runSandboxedMatch(home.source, away.source, { seed })).then((r) => {
       if (!r.ok || !r.result) return json(res, 400, { error: r.fault?.message ?? "match failed" });
       return json(res, 200, {
         home: { name: home.name, handle: home.handle, kind: home.kind },
@@ -67,6 +84,9 @@ const server = createServer((req, res) => {
     req.on("data", (c) => (body += c));
     req.on("end", async () => {
       try {
+        if (!allow(`submit:${clientIp(req)}`, 6, 600_000)) {
+          return json(res, 429, { error: "too many submissions - try again in a few minutes" });
+        }
         const { handle, name, source, key } = JSON.parse(body || "{}") as {
           handle?: string;
           name?: string;
@@ -99,9 +119,10 @@ const server = createServer((req, res) => {
           issuedKey = randomBytes(18).toString("base64url");
           secret = sha256(issuedKey);
         }
-        // NOTE: placement runs inline here for local dev. In production this
-        // becomes a queued job so submits return immediately (see DEPLOYMENT.md).
-        const placement = await placeBrainSource(source, { seeds: PLACEMENT_SEEDS });
+        // Placement is CPU-heavy (many sandboxed matches); run it through the
+        // bounded queue so concurrent submits don't overwhelm the machine.
+        if (heavy.full) return json(res, 503, { error: "arena busy - try again in a moment" });
+        const placement = await heavy.run(() => placeBrainSource(source, { seeds: PLACEMENT_SEEDS }));
         if (!placement.ok) return json(res, 400, { error: placement.error });
         const bot = store.upsertUserBot({ handle, name, elo: placement.rating!, source, secret, record: placement.record });
         return json(res, 200, { bot: { ...bot, source: undefined, secret: undefined }, placement, key: issuedKey });

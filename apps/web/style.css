@@ -154,6 +154,9 @@ main {
 .halfstep .half { font-weight: 800; color: var(--accent); font-size: 13px; flex: none; padding-top: 1px; }
 .halfstep b { color: var(--text); }
 
+.oneliner { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.oneliner .muted { margin: 4px 0; }
+
 /* OS tabs (step 0 install command swaps per OS) */
 .comphead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .comphead h2 { margin: 0; }

@@ -199,6 +199,7 @@ function updateBotName() {
   const name = raw || "your-bot-name";
   $("cmdNew").textContent = `npm run new ${name} && cd ${name}`;
   $("cmdSubmit").textContent = `npm run submit -- ${name}`;
+  $("cmdOneliner").textContent = `git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new ${name} && cd ${name}`;
   const st = $("nameStatus");
   if (!raw) { st.textContent = ""; st.className = "namestatus"; return; }
   if (!SAFE_NAME.test(raw)) { st.textContent = "2-24: a-z 0-9 - _"; st.className = "namestatus bad"; return; }
