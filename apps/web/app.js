@@ -202,9 +202,11 @@ function updateBotName() {
   const st = $("nameStatus");
   if (!raw) { st.textContent = ""; st.className = "namestatus"; return; }
   if (!SAFE_NAME.test(raw)) { st.textContent = "2-24: a-z 0-9 - _"; st.className = "namestatus bad"; return; }
-  const taken = bots.some(
-    (b) => b.kind === "user" && [b.handle, b.name].some((x) => (x || "").toLowerCase() === raw.toLowerCase()),
-  );
+  const lower = raw.toLowerCase();
+  const taken = bots.some((b) => {
+    if ((b.name || "").toLowerCase() === lower) return true; // any bot's name (incl. house)
+    return b.kind === "user" && (b.handle || "").toLowerCase() === lower; // a taken handle
+  });
   st.textContent = taken ? "taken ✗" : "available ✓";
   st.className = "namestatus " + (taken ? "bad" : "ok");
 }

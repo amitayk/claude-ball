@@ -78,6 +78,12 @@ const server = createServer((req, res) => {
         if (!/^[a-z0-9_-]{2,24}$/i.test(handle)) {
           return json(res, 400, { error: "handle must be 2-24 chars: letters, digits, - or _" });
         }
+        // Don't let a submission take a house bot's name/handle (it would be
+        // shadowed in watch-by-name and confuse the board).
+        const clash = store.find(name) ?? store.find(handle);
+        if (clash && clash.kind === "library") {
+          return json(res, 400, { error: `"${clash.name}" is a house bot name - pick another` });
+        }
         // Ownership: first submit for a handle claims it and gets a key; later
         // submits to that handle must present the same key.
         const existing = store.find(`user-${handle}`);
