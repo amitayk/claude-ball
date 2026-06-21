@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>claude-ball · coach</title>
     <link rel="stylesheet" href="./style.css" />
+    <style>
+      .tips summary { cursor: pointer; font-weight: 700; list-style: none; }
+      .tips summary::-webkit-details-marker { display: none; }
+      .tips summary::before { content: "▸ "; }
+      .tips[open] summary::before { content: "▾ "; }
+      .tips[open] summary { margin-bottom: 8px; }
+      .tiplist { margin: 0; padding-left: 18px; }
+      .tiplist li { margin-bottom: 7px; font-size: 13px; opacity: 0.85; }
+      .tiplist b { opacity: 1; font-weight: 700; }
+    </style>
   </head>
   <body>
     <header>
@@ -69,6 +79,19 @@
           <p class="muted small">Each commit touching your brain. Run an old one, or roll back.</p>
           <ul id="versions" class="versions"></ul>
         </div>
+
+        <details class="card tips">
+          <summary>Coaching tips</summary>
+          <p class="muted small">Design in phases - decide which phase you're in, then give each player a job. You describe it; your assistant codes it.</p>
+          <ul class="tiplist">
+            <li><b>Kickoff:</b> play the ball back - pick the taker and a safe outlet.</li>
+            <li><b>In possession:</b> the ball-carrier dribbles / passes / shoots; others spread out and offer lanes.</li>
+            <li><b>Out of possession:</b> press or contain; mark their danger man, guard your goal.</li>
+            <li><b>Loose ball:</b> decide who chases and who holds shape.</li>
+            <li><b>Shooting:</b> only when it's on - close, good angle, clear lane.</li>
+            <li><b>Tune knobs, change one thing, commit.</b> Roll back from Versions if it got worse.</li>
+          </ul>
+        </details>
       </aside>
     </main>
 

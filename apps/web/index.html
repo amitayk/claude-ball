@@ -122,6 +122,20 @@
           <li><b>Deterministic:</b> the same matchup and seed always produce the exact same game.</li>
         </ul>
       </div>
+      <div class="card">
+        <h2>How to coach</h2>
+        <p class="muted small">You describe the behaviour in plain words; your AI writes the code. The trick is to think in phases - decide which phase you're in, then give each player a job.</p>
+        <ul class="rulelist">
+          <li><b>Kickoff:</b> you must play the ball back - pick who takes it and the safe outlet.</li>
+          <li><b>In possession:</b> the player on the ball dribbles, passes, or shoots; everyone else spreads out and offers passing lanes.</li>
+          <li><b>Out of possession:</b> press the ball or drop and contain; decide who marks their danger man and who guards your goal.</li>
+          <li><b>Loose ball:</b> choose who chases and who holds shape - don't let all four chase.</li>
+          <li><b>Shooting:</b> define when a shot is on - close enough, good angle, clear lane. Otherwise keep the ball.</li>
+          <li><b>Give every player a role:</b> keeper, defenders, midfield, striker. Spacing off the ball matters as much as the ball.</li>
+          <li><b>Make knobs:</b> turn the numbers you're unsure about (press distance, shooting range) into params and tune them live.</li>
+          <li><b>Iterate small:</b> change one idea, watch where you concede, commit - roll back from Versions if it got worse.</li>
+        </ul>
+      </div>
     </section>
 
     <footer class="muted small">deterministic matches · sandboxed brains · <span id="apihint"></span></footer>

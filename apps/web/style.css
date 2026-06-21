@@ -217,6 +217,7 @@ button.primary:hover { filter: brightness(1.06); }
 
 /* ---------- rules ---------- */
 .rules { position: relative; z-index: 1; max-width: 1320px; margin: 0 auto 8px; padding: 0 clamp(16px, 4vw, 40px); scroll-margin-top: 16px; }
+.rules .card + .card { margin-top: 18px; }
 .rulelist { columns: 2; column-gap: 30px; list-style: none; margin: 0; padding: 0; }
 .rulelist li { break-inside: avoid; margin-bottom: 11px; padding-left: 18px; position: relative; color: #c3ccc4; font-size: 13.5px; line-height: 1.5; }
 .rulelist li::before { content: ""; position: absolute; left: 2px; top: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
