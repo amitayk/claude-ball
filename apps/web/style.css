@@ -154,6 +154,14 @@ main {
 .halfstep .half { font-weight: 800; color: var(--accent); font-size: 13px; flex: none; padding-top: 1px; }
 .halfstep b { color: var(--text); }
 
+/* OS tabs (step 0 install command swaps per OS) */
+.comphead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.comphead h2 { margin: 0; }
+.ostabs { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.ostabs button { background: transparent; border: none; color: var(--muted); padding: 5px 10px; font: inherit; font-size: 11.5px; cursor: pointer; }
+.ostabs button + button { border-left: 1px solid var(--line); }
+.ostabs button.active { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+
 /* command block + always-visible Copy button (code never wraps mid-command) */
 .cmdrow { display: flex; gap: 8px; align-items: stretch; margin-top: 6px; }
 .cmd {

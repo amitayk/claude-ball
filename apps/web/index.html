@@ -67,8 +67,19 @@
 
       <aside class="side">
         <div class="card howto">
-          <h2>Compete</h2>
-          <ol class="steps">
+          <div class="comphead">
+            <h2>Compete</h2>
+            <div class="ostabs" id="osTabs">
+              <button data-os="mac">macOS</button>
+              <button data-os="windows">Windows</button>
+              <button data-os="linux">Linux</button>
+            </div>
+          </div>
+          <ol class="steps" start="0">
+            <li><b>No git / node yet?</b> Install them (skip if you already have them).
+              <div class="cmdrow"><code class="cmd" id="cmdInstall">brew install git node</code><button class="copy">Copy</button></div>
+              <p class="muted small">No package manager? Grab them from <a href="https://nodejs.org">nodejs.org</a> &amp; <a href="https://git-scm.com">git-scm.com</a>.</p></li>
+
             <li><b>Get the kit.</b> Clone and install.
               <div class="cmdrow"><code class="cmd">git clone https://github.com/amitayk/claude-ball &amp;&amp; cd claude-ball &amp;&amp; npm install</code><button class="copy">Copy</button></div></li>
 
@@ -86,7 +97,7 @@
               </div></li>
 
             <li><b>Submit.</b> Place it on the ladder vs every house bot, then watch it play here.
-              <div class="cmdrow"><code class="cmd" id="cmdSubmit">KR_HANDLE=your-bot-name npm run submit</code><button class="copy">Copy</button></div></li>
+              <div class="cmdrow"><code class="cmd" id="cmdSubmit">npm run submit -- your-bot-name</code><button class="copy">Copy</button></div></li>
           </ol>
           <p class="muted small">House bots set the skill floor &amp; ceiling. Beat <span class="dot lib"></span>blitz to top the table.</p>
         </div>

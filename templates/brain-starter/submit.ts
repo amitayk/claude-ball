@@ -2,7 +2,7 @@
  * Submit your brain to the arena. Reads src/brain.ts and uploads it; the arena
  * places it on the ladder against the house bots (and other coaches' bots).
  *
- *   KR_HANDLE=yourname npm run submit
+ *   npm run submit -- yourname      (works on macOS / Windows / Linux)
  *
  * The first submit for a handle claims it and saves an ownership key to
  * `.kr-key` (keep it!). Later submits reuse that key so nobody else can take
@@ -12,7 +12,8 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
 const api = process.env.KR_API ?? "https://claude-ball.fly.dev";
-const handle = process.env.KR_HANDLE ?? "me";
+// handle: `npm run submit -- <handle>` (cross-platform) or KR_HANDLE=<handle>
+const handle = process.argv[2] || process.env.KR_HANDLE || "me";
 const source = readFileSync("src/brain.ts", "utf8");
 const name = source.match(/name:\s*["'`]([^"'`]+)["'`]/)?.[1] ?? basename(resolve("."));
 const key = existsSync(".kr-key") ? readFileSync(".kr-key", "utf8").trim() : undefined;

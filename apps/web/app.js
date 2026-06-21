@@ -198,7 +198,7 @@ function updateBotName() {
   const raw = $("botName").value.trim();
   const name = raw || "your-bot-name";
   $("cmdNew").textContent = `npm run new ${name} && cd ${name}`;
-  $("cmdSubmit").textContent = `KR_HANDLE=${name} npm run submit`;
+  $("cmdSubmit").textContent = `npm run submit -- ${name}`;
   const st = $("nameStatus");
   if (!raw) { st.textContent = ""; st.className = "namestatus"; return; }
   if (!SAFE_NAME.test(raw)) { st.textContent = "2-24: a-z 0-9 - _"; st.className = "namestatus bad"; return; }
@@ -211,6 +211,28 @@ function updateBotName() {
   st.className = "namestatus " + (taken ? "bad" : "ok");
 }
 $("botName").addEventListener("input", updateBotName);
+
+// OS tabs: the only OS-specific command is the install (step 0). Auto-detect.
+const OS_INSTALL = {
+  mac: "brew install git node",
+  windows: "winget install Git.Git OpenJS.NodeJS",
+  linux: "sudo apt install -y git nodejs npm",
+};
+function detectOS() {
+  const p = (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent || "").toLowerCase();
+  if (p.includes("win")) return "windows";
+  if (p.includes("mac") || p.includes("iphone") || p.includes("ipad")) return "mac";
+  if (p.includes("linux") || p.includes("x11") || p.includes("android")) return "linux";
+  return "mac";
+}
+let currentOS = detectOS();
+function setOS(os) {
+  currentOS = os;
+  for (const b of document.querySelectorAll("#osTabs button")) b.classList.toggle("active", b.dataset.os === os);
+  $("cmdInstall").textContent = OS_INSTALL[os] ?? OS_INSTALL.mac;
+}
+for (const b of document.querySelectorAll("#osTabs button")) b.addEventListener("click", () => setOS(b.dataset.os));
+setOS(currentOS);
 
 // Widen the field card from a centred card toward full width as it snaps to the
 // top of the viewport (full width = fully snapped).
