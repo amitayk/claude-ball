@@ -12,118 +12,100 @@
 
     <header class="hero">
       <div class="hero-inner">
-        <div class="logo">⚽ claude-ball</div>
         <h1>The Arena</h1>
+        <p class="lede">You are the coach.</p>
         <p class="tag">
-          Design a soccer team's <b>brain</b>.<br />
-          <b>You are the coach.</b><br />
-          You do the thinking - Your AI does the typing.<br />
+          Design your soccer team's <b>brain</b> in plain words - your AI writes the code.
           Submit it and climb the ladder against the house bots and everyone else.
         </p>
         <div class="herobtns">
+          <button id="rulesBtn" class="ghostbtn" type="button">📖 How it works</button>
           <a id="starBtn" class="star" target="_blank" rel="noopener">★ Star on GitHub</a>
         </div>
-        <div class="conn" id="conn">connecting…</div>
       </div>
     </header>
 
-    <section class="theater card">
-      <div class="matchup">
-        <select id="homeSel" class="sel home"></select>
-        <span class="vs">vs</span>
-        <select id="awaySel" class="sel away"></select>
-        <span class="seedfield">
-          <span class="seedlabel">seed</span>
-          <input id="seedInput" type="number" min="1" value="1" />
-          <button id="diceBtn" title="Random seed" aria-label="Random seed">🎲</button>
-        </span>
-        <button id="watchBtn" class="primary">▶ Watch</button>
-        <span id="theaterScore" class="tscore"></span>
-      </div>
-      <div class="stagewrap"><canvas id="pitch" width="1050" height="680"></canvas></div>
-      <div class="controls">
-        <button id="pp" title="Play / pause (space)">⏸</button>
-        <input id="scrub" type="range" min="0" max="0" value="0" />
-        <span id="ttime" class="muted small">0.0s</span>
-        <select id="speedSel">
-          <option value="1" selected>1×</option>
-          <option value="1.5">1.5×</option>
-          <option value="2">2×</option>
-          <option value="4">4×</option>
-        </select>
-        <button id="fsBtn" title="Fullscreen (← → step, space play)">⛶</button>
-      </div>
+    <section class="stage">
+      <section class="theater card">
+        <div class="fieldtop">
+          <div class="matchup">
+            <select id="homeSel" class="sel home"></select>
+            <span class="vs">vs</span>
+            <select id="awaySel" class="sel away"></select>
+          </div>
+          <span class="livebadge" id="conn">connecting…</span>
+        </div>
+        <div class="stagewrap"><canvas id="pitch" width="1050" height="680"></canvas></div>
+        <div id="stageMsg" class="stagemsg"></div>
+        <div class="controls">
+          <button id="pp" title="Play / pause (space)">⏸</button>
+          <input id="scrub" type="range" min="0" max="0" value="0" />
+          <span id="ttime" class="muted small">0.0s</span>
+          <select id="speedSel" title="Playback speed">
+            <option value="1" selected>1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+          <div class="execbtns">
+            <span class="seedfield">
+              <span class="seedlabel">seed</span>
+              <input id="seedInput" type="number" min="1" value="1" />
+              <button id="diceBtn" title="Random seed - new game">🎲</button>
+            </span>
+            <button id="watchBtn" class="primary" title="Replay this matchup">↻ Rewatch</button>
+            <button id="fsBtn" title="Fullscreen (← → step, space play)">⛶</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="howto card">
+        <h2>Compete</h2>
+        <p class="muted small">Build a bot with your AI agent, then put it on the ladder.</p>
+        <ol class="steps">
+          <li><b>Name your bot.</b>
+            <div class="namerow"><input id="botName" placeholder="your-bot-name" autocomplete="off" spellcheck="false" /><span id="nameStatus" class="namestatus"></span></div>
+          </li>
+          <li><b>Set it up.</b> One command clones, installs, and scaffolds your bot.
+            <div class="cmdrow"><code class="cmd" id="cmdOneliner">git clone https://github.com/amitayk/claude-ball &amp;&amp; cd claude-ball &amp;&amp; npm install &amp;&amp; npm run new your-bot-name &amp;&amp; cd your-bot-name</code><button class="copy" data-name>Copy</button></div>
+          </li>
+          <li><b>Build it with your AI.</b> Run your coding agent in that folder and describe your tactics. <code>CLAUDE.md</code> keeps it to coding - the thinking is yours.
+            <div class="cmdrow"><code class="cmd">claude</code><button class="copy">Copy</button></div>
+          </li>
+          <li><b>Submit.</b> Place it on the ladder and watch it play here.
+            <div class="cmdrow"><code class="cmd" id="cmdSubmit">npm run submit -- your-bot-name</code><button class="copy" data-name>Copy</button></div>
+          </li>
+        </ol>
+        <details class="install">
+          <summary>No git or Node yet?</summary>
+          <div class="ostabs" id="osTabs">
+            <button data-os="mac">macOS</button>
+            <button data-os="windows">Windows</button>
+            <button data-os="linux">Linux</button>
+          </div>
+          <div class="cmdrow"><code class="cmd" id="cmdInstall">brew install git node</code><button class="copy">Copy</button></div>
+        </details>
+      </aside>
     </section>
 
-    <main>
+    <section class="boardwrap">
       <section class="board card">
         <div class="board-head">
           <h2>Leaderboard</h2>
           <span class="muted small" id="count"></span>
         </div>
-        <p class="muted small">Click any two bots to watch them play.</p>
+        <div class="boardsel" id="boardSel">Click two bots to watch them play - 0 selected</div>
         <ol id="rows" class="rows"><li class="muted">loading…</li></ol>
+        <div class="legend-inline">
+          <span><span class="pill lib">house</span> built-in bot</span>
+          <span><span class="pill you">challenger</span> a submitted bot</span>
+          <span><b class="lg">strength</b> skill rating - higher usually wins</span>
+          <span><b class="lg">W-D-L</b> record vs the house bots</span>
+        </div>
       </section>
+    </section>
 
-      <aside class="side">
-        <div class="card howto">
-          <div class="comphead">
-            <h2>Compete</h2>
-            <div class="ostabs" id="osTabs">
-              <button data-os="mac">macOS</button>
-              <button data-os="windows">Windows</button>
-              <button data-os="linux">Linux</button>
-            </div>
-          </div>
-          <div class="namepick">
-            <label for="botName"><b>First, name your bot</b> — it fills the commands below.</label>
-            <div class="namerow"><input id="botName" placeholder="your-bot-name" autocomplete="off" spellcheck="false" /><span id="nameStatus" class="namestatus"></span></div>
-          </div>
-
-          <div class="oneliner">
-            <div class="muted small">⚡ Have git &amp; node? One line:</div>
-            <div class="cmdrow"><code class="cmd" id="cmdOneliner">git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new your-bot-name && cd your-bot-name</code><button class="copy" data-name>Copy</button></div>
-            <div class="muted small">then run your agent &amp; <code>npm run submit -- your-bot-name</code>. Or step by step:</div>
-          </div>
-
-          <ol class="steps" start="0">
-            <li><b>No git / node yet?</b> Install them (skip if you already have them).
-              <div class="cmdrow"><code class="cmd" id="cmdInstall">brew install git node</code><button class="copy">Copy</button></div>
-              <p class="muted small">No package manager? Grab them from <a href="https://nodejs.org">nodejs.org</a> &amp; <a href="https://git-scm.com">git-scm.com</a>.</p></li>
-
-            <li><b>Get the kit.</b> Clone and install.
-              <div class="cmdrow"><code class="cmd">git clone https://github.com/amitayk/claude-ball &amp;&amp; cd claude-ball &amp;&amp; npm install</code><button class="copy">Copy</button></div></li>
-
-            <li><b>Scaffold your bot.</b> Creates a brain folder named after your bot.
-              <div class="cmdrow"><code class="cmd" id="cmdNew">npm run new your-bot-name &amp;&amp; cd your-bot-name</code><button class="copy" data-name>Copy</button></div></li>
-
-            <li><b>Build it with your AI.</b> In that folder, run your coding agent - Claude (terminal or app), Codex, any of them - and describe your tactics. The <code>CLAUDE.md</code> keeps it to coding; the thinking is yours.
-              <div class="cmdrow"><code class="cmd">claude</code><button class="copy">Copy</button></div>
-              <div class="halfstep">
-                <span class="half">3½</span>
-                <div><b>Optional, but fun:</b> open a live workbench to watch &amp; tune as you build.
-                  <div class="cmdrow"><code class="cmd">npm run coach</code><button class="copy">Copy</button></div>
-                </div>
-              </div></li>
-
-            <li><b>Submit.</b> Place it on the ladder vs every house bot, then watch it play here.
-              <div class="cmdrow"><code class="cmd" id="cmdSubmit">npm run submit -- your-bot-name</code><button class="copy" data-name>Copy</button></div></li>
-          </ol>
-          <p class="muted small">House bots set the skill floor &amp; ceiling. Beat <span class="dot lib"></span>blitz to top the table.</p>
-        </div>
-        <div class="card legend">
-          <h2>Reading the table</h2>
-          <ul class="leg">
-            <li><span class="pill lib">house</span><span>a built-in bot</span></li>
-            <li><span class="pill you">challenger</span><span>a bot a contestant submitted</span></li>
-            <li><b class="lg">Elo</b><span>skill rating; higher usually beats lower</span></li>
-            <li><b class="lg">W-D-L</b><span>placement record vs the house bots</span></li>
-          </ul>
-        </div>
-      </aside>
-    </main>
-
-    <section class="rules">
+    <section class="rules" id="rules">
       <div class="card">
         <h2>How the game works</h2>
         <ul class="rulelist">

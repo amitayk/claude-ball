@@ -4,8 +4,6 @@ import { BRAND, REPO } from "./brand.js";
 // Brand the page from one const.
 document.title = `${BRAND} · the arena`;
 {
-  const logo = document.querySelector(".logo");
-  if (logo) logo.textContent = `⚽ ${BRAND}`;
   const star = document.getElementById("starBtn");
   if (star) star.href = REPO;
 }
@@ -33,17 +31,13 @@ const player = new MatchPlayer($("pitch"));
 player.onTick = (i, n) => {
   $("scrub").max = String(Math.max(0, n - 1));
   $("scrub").value = String(i);
-  if (player.replay) {
-    const f = player.replay.frames[i];
-    $("ttime").textContent = (f.t * player.meta.dt).toFixed(1) + "s";
-    $("theaterScore").innerHTML =
-      `<b class="cH">${esc(player.names.home)}</b> ${f.score.home} - ${f.score.away} <b class="cA">${esc(player.names.away)}</b>`;
-  }
+  if (player.replay) $("ttime").textContent = (player.replay.frames[i].t * player.meta.dt).toFixed(1) + "s";
   $("pp").textContent = player.playing ? "⏸" : "▶";
 };
 
 let bots = [];
 let firstLoad = true;
+let picks = []; // selected bot names, ordered; [home, away]
 
 async function refresh() {
   try {
@@ -51,15 +45,15 @@ async function refresh() {
     bots = (await res.json()).bots || [];
     renderBoard();
     syncSelects();
+    renderPicks();
     updateBotName();
-    $("conn").textContent = "● live";
+    $("conn").textContent = "live";
     $("conn").classList.add("ok");
     if (firstLoad && bots.length >= 1) {
       firstLoad = false;
       const has = (n) => !!n && bots.some((b) => b.name === n);
       let home, away;
       if (has(initHome)) {
-        // shared/submit link: a specific bot, defaulting its opponent to blitz
         home = initHome;
         away = has(initAway) ? initAway : home === "blitz" ? "formation" : "blitz";
       } else {
@@ -67,13 +61,11 @@ async function refresh() {
         away = has("formation") ? "formation" : bots.find((b) => b.name !== home)?.name ?? home;
       }
       if (!has(away) || away === home) away = bots.find((b) => b.name !== home)?.name ?? home;
-      $("homeSel").value = home;
-      $("awaySel").value = away;
       if (initSeed && /^\d+$/.test(initSeed)) $("seedInput").value = initSeed;
-      watch();
+      setMatchup(home, away);
     }
   } catch {
-    $("conn").textContent = "○ can't reach the arena - run `npm run api`";
+    $("conn").textContent = "offline";
     $("conn").classList.remove("ok");
   }
 }
@@ -90,42 +82,63 @@ function renderBoard() {
       const wdl = b.record ? `${b.record.wins}-${b.record.draws}-${b.record.losses}` : "-";
       const fill = Math.round(((b.elo - min) / span) * 100);
       const blurb = b.blurb ? `<div class="blurb">${esc(b.blurb)}</div>` : "";
-      return `<li class="row ${isUser ? "you" : ""}" data-name="${esc(b.name)}">
+      return `<li class="row" data-name="${esc(b.name)}">
         <div class="rank ${i < 3 ? "m" + (i + 1) : ""}">${medal}</div>
-        <div class="who"><div class="name">${esc(cap(b.name))} ${pill}</div>
+        <div class="who"><div class="name">${esc(cap(b.name))} ${pill} <span class="selbadge"></span></div>
           <div class="owner">${isUser ? "@" + esc(b.handle) : "house"} · <span class="wdl">${wdl}</span></div>${blurb}</div>
-        <div class="stat"><div class="elo">${b.elo}</div><div class="elobar"><span style="width:${fill}%"></span></div></div>
+        <div class="stat"><div class="elo">${b.elo}</div><div class="elocap">strength</div><div class="elobar"><span style="width:${fill}%"></span></div></div>
       </li>`;
     })
     .join("");
   for (const li of document.querySelectorAll(".row")) {
-    li.addEventListener("click", () => pickMatchup(li.dataset.name));
+    li.addEventListener("click", () => clickRow(li.dataset.name));
   }
 }
 
 function syncSelects() {
   for (const sel of [$("homeSel"), $("awaySel")]) {
     const keep = sel.value;
-    sel.innerHTML = bots.map((b) => `<option value="${esc(b.name)}">${esc(cap(b.name))} · ${b.elo}</option>`).join("");
+    sel.innerHTML = bots.map((b) => `<option value="${esc(b.name)}">${esc(cap(b.name))} · strength ${b.elo}</option>`).join("");
     if (bots.some((b) => b.name === keep)) sel.value = keep;
   }
 }
 
-function pickMatchup(name) {
-  $("homeSel").value = name;
-  if ($("awaySel").value === name) {
-    const other = bots.find((b) => b.name !== name);
-    if (other) $("awaySel").value = other.name;
+// ---------- selection: pick two bots, auto-run ----------
+function setMatchup(home, away, run = true) {
+  picks = [home, away];
+  $("homeSel").value = home;
+  $("awaySel").value = away;
+  renderPicks();
+  if (run) watch();
+}
+
+function clickRow(name) {
+  const idx = picks.indexOf(name);
+  if (idx >= 0) picks.splice(idx, 1);       // click a selected bot to drop it
+  else if (picks.length < 2) picks.push(name);
+  else picks = [name];                      // already have two -> start fresh
+  if (picks.length === 2) setMatchup(picks[0], picks[1]);
+  else renderPicks();
+}
+
+function renderPicks() {
+  for (const li of document.querySelectorAll(".row")) {
+    const i = picks.indexOf(li.dataset.name);
+    li.classList.toggle("sel", i >= 0);
+    li.classList.toggle("selHome", i === 0);
+    li.classList.toggle("selAway", i === 1);
+    const badge = li.querySelector(".selbadge");
+    if (badge) badge.textContent = i === 0 ? "HOME" : i === 1 ? "AWAY" : "";
   }
-  watch();
-  document.querySelector(".theater").scrollIntoView({ behavior: "smooth", block: "start" });
+  const s = $("boardSel");
+  if (picks.length === 0) s.textContent = "Click two bots to watch them play - 0 selected";
+  else if (picks.length === 1) s.innerHTML = `<b>${esc(cap(picks[0]))}</b> selected - pick an opponent`;
+  else s.innerHTML = `<b class="cH">${esc(cap(picks[0]))}</b> vs <b class="cA">${esc(cap(picks[1]))}</b>`;
 }
 
 function updateUrl(home, away, seed) {
   const p = new URLSearchParams(location.search);
-  p.set("home", home);
-  p.set("away", away);
-  p.set("seed", String(seed));
+  p.set("home", home); p.set("away", away); p.set("seed", String(seed));
   history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
 }
 
@@ -134,40 +147,52 @@ async function watch() {
   if (!home || !away) return;
   updateUrl(home, away, seed);
   const btn = $("watchBtn");
-  const label = btn.textContent;
   btn.disabled = true;
+  const label = btn.textContent;
   btn.textContent = "Running…";
-  $("theaterScore").innerHTML = `<span class="loading">running match…</span>`;
+  $("stageMsg").className = "stagemsg loading";
+  $("stageMsg").textContent = "running match…";
   try {
     const res = await fetch(`${API}/api/watch?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&seed=${seed}`);
     const data = await res.json();
-    if (!res.ok) { $("theaterScore").textContent = data.error || "match failed"; return; }
+    if (!res.ok) { $("stageMsg").className = "stagemsg err"; $("stageMsg").textContent = data.error || "match failed"; return; }
     player.load(data.replay, { home: cap(data.home.name), away: cap(data.away.name) });
+    $("stageMsg").className = "stagemsg"; $("stageMsg").textContent = "";
   } catch {
-    $("theaterScore").textContent = "couldn't run the match";
+    $("stageMsg").className = "stagemsg err"; $("stageMsg").textContent = "couldn't run the match";
   } finally {
     btn.disabled = false;
     btn.textContent = label;
   }
 }
 
+// changing either dropdown re-runs immediately
+for (const sel of [$("homeSel"), $("awaySel")]) {
+  sel.addEventListener("change", () => setMatchup($("homeSel").value, $("awaySel").value));
+}
 $("watchBtn").addEventListener("click", watch);
 $("pp").addEventListener("click", () => player.toggle());
 $("scrub").addEventListener("input", () => player.seek(Number($("scrub").value)));
 $("speedSel").addEventListener("change", () => (player.speed = Number($("speedSel").value)));
-player.speed = Number($("speedSel").value); // default 1.5×
+player.speed = Number($("speedSel").value);
 
-// 🎲 random seed → re-run
+// 🎲 random seed -> new game, re-run
 $("diceBtn").addEventListener("click", () => {
   $("seedInput").value = String(1 + Math.floor(Math.random() * 9999));
   watch();
 });
+$("seedInput").addEventListener("change", watch);
 
-// fullscreen the whole theater (field + matchup + score + controls)
+// fullscreen the whole theater (field + matchup + controls)
 $("fsBtn").addEventListener("click", () => {
   const el = document.querySelector(".theater");
   if (document.fullscreenElement) document.exitFullscreen();
   else el.requestFullscreen?.();
+});
+
+// Rules button -> jump to the rules section
+$("rulesBtn").addEventListener("click", () => {
+  $("rules").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
 // keyboard: space = play/pause, ← → = step a frame (ignored while typing)
@@ -192,39 +217,35 @@ for (const btn of document.querySelectorAll(".copy")) {
   });
 }
 
-// Step 2: pick a bot name -> validate, check availability, fill the commands.
+// Name your bot -> validate, check availability, fill the name-dependent commands.
 const SAFE_NAME = /^[a-z0-9_-]{2,24}$/i;
 function updateBotName() {
   const raw = $("botName").value.trim();
   const name = raw || "your-bot-name";
-  $("cmdNew").textContent = `npm run new ${name} && cd ${name}`;
   $("cmdSubmit").textContent = `npm run submit -- ${name}`;
   $("cmdOneliner").textContent = `git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new ${name} && cd ${name}`;
   const st = $("nameStatus");
   let ok = false;
   if (!raw) {
-    st.textContent = "";
-    st.className = "namestatus";
+    st.textContent = ""; st.className = "namestatus";
   } else if (!SAFE_NAME.test(raw)) {
-    st.textContent = "2-24: a-z 0-9 - _";
-    st.className = "namestatus bad";
+    st.textContent = "2-24: a-z 0-9 - _"; st.className = "namestatus bad";
   } else {
     const lower = raw.toLowerCase();
     const taken = bots.some((b) => {
-      if ((b.name || "").toLowerCase() === lower) return true; // any bot's name (incl. house)
-      return b.kind === "user" && (b.handle || "").toLowerCase() === lower; // a taken handle
+      if ((b.name || "").toLowerCase() === lower) return true;
+      return b.kind === "user" && (b.handle || "").toLowerCase() === lower;
     });
     st.textContent = taken ? "taken ✗" : "available ✓";
     st.className = "namestatus " + (taken ? "bad" : "ok");
     ok = !taken;
   }
-  // Name-dependent commands can only be copied once a valid, free name is set.
   for (const b of document.querySelectorAll(".copy[data-name]")) b.disabled = !ok;
 }
 $("botName").addEventListener("input", updateBotName);
-updateBotName(); // start with name-dependent copies disabled
+updateBotName();
 
-// OS tabs: the only OS-specific command is the install (step 0). Auto-detect.
+// OS tabs: the only OS-specific command is the install one. Auto-detect.
 const OS_INSTALL = {
   mac: "brew install git node",
   windows: "winget install Git.Git OpenJS.NodeJS",
@@ -237,44 +258,25 @@ function detectOS() {
   if (p.includes("linux") || p.includes("x11") || p.includes("android")) return "linux";
   return "mac";
 }
-let currentOS = detectOS();
 function setOS(os) {
-  currentOS = os;
   for (const b of document.querySelectorAll("#osTabs button")) b.classList.toggle("active", b.dataset.os === os);
   $("cmdInstall").textContent = OS_INSTALL[os] ?? OS_INSTALL.mac;
 }
 for (const b of document.querySelectorAll("#osTabs button")) b.addEventListener("click", () => setOS(b.dataset.os));
-setOS(currentOS);
-
-// Widen the field card from a centred card toward full width as it snaps to the
-// top of the viewport (full width = fully snapped).
-const theaterEl = document.querySelector(".theater");
-const NARROW = 1080;
-let snapTick = false;
-function applySnapWidth() {
-  snapTick = false;
-  const top = Math.max(0, theaterEl.getBoundingClientRect().top);
-  const start = window.innerHeight * 0.55; // begin widening within this distance of the top
-  const p = Math.max(0, Math.min(1, 1 - top / start));
-  const full = document.documentElement.clientWidth;
-  theaterEl.style.maxWidth = Math.round(NARROW + Math.max(0, full - NARROW) * p) + "px";
-  theaterEl.style.borderRadius = (14 * (1 - p)).toFixed(1) + "px";
-}
-addEventListener("scroll", () => { if (!snapTick) { snapTick = true; requestAnimationFrame(applySnapWidth); } }, { passive: true });
-addEventListener("resize", applySnapWidth);
-applySnapWidth();
+setOS(detectOS());
 
 // Gentle, directional snap: when scrolling settles near the field, ease it to the
-// top — but only in the direction you're already heading, so scrolling PAST it
-// never yanks you back.
+// top — only in the direction you're already heading, so scrolling PAST it never
+// yanks you back. (No width change — the card keeps a fixed size.)
+const theaterEl = document.querySelector(".theater");
 let lastY = window.scrollY, scrollDir = 0, snapTimer = null, snapping = false;
 function maybeSnap() {
   if (snapping) return;
   const top = theaterEl.getBoundingClientRect().top;
   const BAND = 130;
   let should = false;
-  if (scrollDir > 0 && top > 2 && top < BAND) should = true;        // arriving from above
-  else if (scrollDir < 0 && top < -2 && top > -BAND) should = true; // returning from below
+  if (scrollDir > 0 && top > 2 && top < BAND) should = true;
+  else if (scrollDir < 0 && top < -2 && top > -BAND) should = true;
   if (!should) return;
   snapping = true;
   window.scrollBy({ top, behavior: "smooth" });

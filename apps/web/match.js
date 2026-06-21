@@ -4,6 +4,17 @@
 const COLORS = { home: "#4f9dff", away: "#ffd24a", ball: "#fff", line: "rgba(255,255,255,0.22)" };
 const PLAYER_R = 12;
 
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
 export class MatchPlayer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -96,22 +107,58 @@ export class MatchPlayer {
     const top = (H - goalHeight) / 2;
     ctx.strokeStyle = "rgba(255,255,255,0.85)"; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.moveTo(4, top); ctx.lineTo(4, top + goalHeight); ctx.moveTo(W - 4, top); ctx.lineTo(W - 4, top + goalHeight); ctx.stroke();
-    // team name labels at each goal
+    // faint team end-zones (team names now live in the scorebug)
     ctx.save();
     ctx.globalAlpha = 0.16; ctx.fillStyle = COLORS.home; ctx.fillRect(4, top, 22, goalHeight);
-    ctx.fillStyle = COLORS.away; ctx.fillRect(W - 26, top, 22, goalHeight); ctx.globalAlpha = 1;
-    ctx.font = "bold 15px ui-monospace, monospace"; ctx.textBaseline = "top";
-    ctx.fillStyle = COLORS.home; ctx.textAlign = "left"; ctx.fillText(`${this.names.home} ▶`, 34, 26);
-    ctx.fillStyle = COLORS.away; ctx.textAlign = "right"; ctx.fillText(`◀ ${this.names.away}`, W - 16, 26);
+    ctx.fillStyle = COLORS.away; ctx.fillRect(W - 26, top, 22, goalHeight);
     ctx.restore();
     if (f.phase === "kickoff") this.drawKickoff(f);
     // players
     for (const p of f.players) {
       ctx.beginPath(); ctx.fillStyle = COLORS[p.side]; ctx.arc(p.x, p.y, PLAYER_R, 0, Math.PI * 2); ctx.fill();
-      if (p.ball) { ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); }
+      if (p.ball) this.drawOwner(p);
     }
     this.drawBall(f);
     this.drawEffects(f);
+    this.drawScorebug(f);
+  }
+
+  // The ball-carrier: dark contrast halo + a bold, glowing white ring so it's
+  // obvious at a glance who has the ball.
+  drawOwner(p) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,0.55)";
+    ctx.beginPath(); ctx.arc(p.x, p.y, PLAYER_R + 3.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 4; ctx.strokeStyle = "#fff";
+    ctx.shadowColor = "rgba(255,255,255,0.9)"; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.arc(p.x, p.y, PLAYER_R + 0.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Broadcast-style scorebug at the top of the pitch: home name, score, away name.
+  drawScorebug(f) {
+    const ctx = this.ctx, W = this.meta.field.width;
+    const parts = [
+      { t: this.names.home, c: COLORS.home },
+      { t: "  " + f.score.home, c: COLORS.home },
+      { t: " : ", c: "rgba(255,255,255,0.55)" },
+      { t: f.score.away + "  ", c: COLORS.away },
+      { t: this.names.away, c: COLORS.away },
+    ];
+    ctx.save();
+    ctx.font = "bold 21px ui-monospace, SFMono-Regular, Menlo, monospace";
+    ctx.textBaseline = "middle";
+    let inner = 0;
+    for (const p of parts) inner += ctx.measureText(p.t).width;
+    const padX = 16, h = 34, boxW = inner + padX * 2, x = (W - boxW) / 2, y = 10;
+    roundRect(ctx, x, y, boxW, h, 9);
+    ctx.fillStyle = "rgba(8,12,10,0.82)"; ctx.fill();
+    ctx.lineWidth = 1; ctx.strokeStyle = "rgba(255,255,255,0.12)"; ctx.stroke();
+    let cx = x + padX; const cy = y + h / 2 + 1;
+    ctx.textAlign = "left";
+    for (const p of parts) { ctx.fillStyle = p.c; ctx.fillText(p.t, cx, cy); cx += ctx.measureText(p.t).width; }
+    ctx.restore();
   }
 
   drawKickoff(f) {
