@@ -136,7 +136,7 @@ main {
 .elobar { height: 4px; border-radius: 3px; margin-top: 5px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .elobar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--pitch), var(--accent)); }
 
-.pill { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
 .pill.lib { color: var(--away); border-color: rgba(255,122,89,0.4); }
 .pill.you { color: var(--home); border-color: rgba(79,157,255,0.5); }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; vertical-align: middle; margin-right: 4px; }
@@ -178,7 +178,8 @@ main {
 
 /* legend (C): pill/term in a fixed column so wrapped text stays aligned */
 .leg { list-style: none; margin: 0; padding: 0; }
-.leg li { margin-bottom: 10px; display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: start; }
+.leg li { margin-bottom: 10px; display: grid; grid-template-columns: 104px 1fr; gap: 10px; align-items: center; }
+.leg .pill { justify-self: start; }
 .leg .lg { color: var(--text); font-variant-numeric: tabular-nums; }
 .leg li > span:last-child { color: var(--muted); font-size: 13px; }
 
