@@ -201,17 +201,28 @@ function updateBotName() {
   $("cmdSubmit").textContent = `npm run submit -- ${name}`;
   $("cmdOneliner").textContent = `git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new ${name} && cd ${name}`;
   const st = $("nameStatus");
-  if (!raw) { st.textContent = ""; st.className = "namestatus"; return; }
-  if (!SAFE_NAME.test(raw)) { st.textContent = "2-24: a-z 0-9 - _"; st.className = "namestatus bad"; return; }
-  const lower = raw.toLowerCase();
-  const taken = bots.some((b) => {
-    if ((b.name || "").toLowerCase() === lower) return true; // any bot's name (incl. house)
-    return b.kind === "user" && (b.handle || "").toLowerCase() === lower; // a taken handle
-  });
-  st.textContent = taken ? "taken ✗" : "available ✓";
-  st.className = "namestatus " + (taken ? "bad" : "ok");
+  let ok = false;
+  if (!raw) {
+    st.textContent = "";
+    st.className = "namestatus";
+  } else if (!SAFE_NAME.test(raw)) {
+    st.textContent = "2-24: a-z 0-9 - _";
+    st.className = "namestatus bad";
+  } else {
+    const lower = raw.toLowerCase();
+    const taken = bots.some((b) => {
+      if ((b.name || "").toLowerCase() === lower) return true; // any bot's name (incl. house)
+      return b.kind === "user" && (b.handle || "").toLowerCase() === lower; // a taken handle
+    });
+    st.textContent = taken ? "taken ✗" : "available ✓";
+    st.className = "namestatus " + (taken ? "bad" : "ok");
+    ok = !taken;
+  }
+  // Name-dependent commands can only be copied once a valid, free name is set.
+  for (const b of document.querySelectorAll(".copy[data-name]")) b.disabled = !ok;
 }
 $("botName").addEventListener("input", updateBotName);
+updateBotName(); // start with name-dependent copies disabled
 
 // OS tabs: the only OS-specific command is the install (step 0). Auto-detect.
 const OS_INSTALL = {

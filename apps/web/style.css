@@ -179,6 +179,11 @@ main {
 }
 .copy:hover { filter: brightness(1.06); }
 .copy.copied { background: var(--pitch); color: #fff; }
+.copy:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+
+.namepick { margin-bottom: 14px; }
+.namepick label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text); }
+.namepick label b { color: var(--accent); }
 
 /* bot-name picker (step 2) */
 .namerow { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
