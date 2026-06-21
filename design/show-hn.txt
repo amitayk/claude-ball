@@ -1,0 +1,21 @@
+TITLE (pick one):
+
+  Show HN: claude-ball – you coach in plain English, the AI just writes the code
+  Show HN: claude-ball – describe soccer tactics, an AI builds your bot, climb a ladder
+
+
+BODY:
+
+I made a little soccer game where you coach a team by describing the tactics in
+plain words, and the AI writes the bot code for you. The catch is the AI isn't
+allowed to come up with the strategy, that part is yours. You submit your bot and
+it plays a ladder against everyone else's.
+
+You can watch any match in the browser, and matches are deterministic so you can
+share a link to a specific game. I built the whole thing with Claude Code over a
+few days, and it's running on one small server, so be gentle with it.
+
+Would love to hear what tactics people try.
+
+Play: https://claude-ball.fly.dev
+Code: https://github.com/amitayk/claude-ball
