@@ -1,4 +1,6 @@
 import { createServer, type ServerResponse } from "node:http";
+import { spawn } from "node:child_process";
+import { platform } from "node:os";
 import { existsSync, mkdirSync, readFileSync, watch, writeFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { extname, join, resolve } from "node:path";
@@ -253,15 +255,34 @@ const server = createServer(async (req, res) => {
   }
 });
 
+/** Open a URL in the coach's default browser, once, on startup. Best-effort and
+ *  cross-platform; set KR_NO_OPEN=1 (or run in CI) to skip. */
+function openBrowser(url: string): void {
+  if (process.env.KR_NO_OPEN === "1" || process.env.CI) return;
+  const [cmd, args] =
+    platform() === "darwin" ? ["open", [url]]
+    : platform() === "win32" ? ["cmd", ["/c", "start", "", url]]
+    : ["xdg-open", [url]];
+  try {
+    const child = spawn(cmd as string, args as string[], { stdio: "ignore", detached: true });
+    child.on("error", () => {}); // no browser launcher available — never crash the server
+    child.unref();
+  } catch {
+    /* ignore — the URL is printed below regardless */
+  }
+}
+
 // ── boot ─────────────────────────────────────────────────────────────────────
 async function main() {
   await reloadAndRun("startup");
   watchSrc();
   server.listen(port, () => {
     const name = coachBrain?.name ?? "your brain";
+    const url = `http://localhost:${port}`;
     console.log(`\n  ⚽ claude-ball coach — ${name} vs ${opponentName}`);
-    console.log(`     open http://localhost:${port}`);
+    console.log(`     ${url}  (opening in your browser…)`);
     console.log(`     edit src/brain.ts and the match re-runs automatically\n`);
+    openBrowser(url);
   });
 }
 

@@ -223,7 +223,7 @@ function updateBotName() {
   const raw = $("botName").value.trim();
   const name = raw || "your-bot-name";
   $("cmdSubmit").textContent = `npm run submit -- ${name}`;
-  $("cmdOneliner").textContent = `git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new ${name} && cd ${name}`;
+  $("cmdOneliner").textContent = `git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new ${name} -- --here && cd ${name}`;
   const st = $("nameStatus");
   let ok = false;
   if (!raw) {

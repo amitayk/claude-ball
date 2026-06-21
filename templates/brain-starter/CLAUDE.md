@@ -57,20 +57,30 @@ make the tactical decision, then implement their answer.
 
 ## Getting started
 
+**Start the live workbench right away and keep it running the whole session** —
+it's how the coach sees their ideas play out while they think:
+
+```
+npm run coach
+```
+
+It opens `http://localhost:5177` in the coach's browser automatically and
+**hot-reloads**: every time you save `src/brain.ts`, the match re-runs on screen,
+so the coach watches each change live. It fails safe — if an edit doesn't compile
+or the brain throws, the error shows in the page and the workbench keeps running;
+just fix it and save again. Leave it running in the background; you never need to
+restart it by hand.
+
+Then loop:
+
 1. The coach tells you the behaviour they want; you implement it in `src/brain.ts`.
-2. Make it compile and run, then **commit** (see below).
-3. **After your first working version, start the workbench so the coach can watch
-   it play the house bots and compare** — then decide what to change next:
-
-   ```
-   npm run coach
-   ```
-
-   Leave it running; it hot-reloads on every edit. You start it and let the coach
-   watch and judge — you don't evaluate the tactics yourself (see the rule above).
-4. Iterate: the coach says what to change → you edit → you commit → repeat.
+2. Save — the workbench re-runs automatically. Make it compile and run, then
+   **commit** (see below).
+3. The coach watches and decides what to change next — you don't evaluate the
+   tactics yourself (see the rule above).
+4. Repeat: the coach says what to change → you edit → you commit.
 5. When the coach is happy, they enter the arena from this folder:
-   `KR_HANDLE=<your-bot-name> npm run submit`.
+   `npm run submit -- <your-bot-name>`.
 
 ## Commit after every change
 
@@ -201,11 +211,12 @@ argument. Defaults live in code; the coach's saved values live in
 The coach runs a single command and works entirely in the browser:
 
 ```bash
-npm run coach        # opens the live field, control panel, and versions at localhost:5177
+npm run coach        # launches the live field, control panel, and versions in the browser (localhost:5177)
 ```
 
-It hot-reloads: when you edit `src/brain.ts`, the match re-runs automatically —
-the coach does not run terminal commands to see changes. The control panel,
+It opens the browser for the coach and hot-reloads: when you edit `src/brain.ts`,
+the match re-runs automatically — the coach does not run terminal commands to see
+changes. A bad edit shows its error in the page instead of crashing the server. The control panel,
 opponent picker, seed (🎲 for a random game), and version history all live on
 that page.
 

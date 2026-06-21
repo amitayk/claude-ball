@@ -1,9 +1,15 @@
 // Scaffold a new bot folder from the starter template, named on the way.
-//   npm run new <name>      (or: node scripts/new-bot.mjs <name>)
+//   npm run new <name>              (you'll cd into it yourself)
+//   npm run new <name> -- --here    (caller drops you into the folder; the
+//                                    website one-liner ends with `&& cd <name>`)
 import { cpSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 
-const name = process.argv[2];
+const args = process.argv.slice(2);
+// --here means the caller (the website one-liner) cd's into the folder for you,
+// so we skip the "cd <name>" step in the closing message.
+const fromOneliner = args.includes("--here");
+const name = args.find((a) => !a.startsWith("-"));
 const SAFE = /^[a-z0-9_-]{2,24}$/i;
 
 if (!name || !SAFE.test(name)) {
@@ -49,6 +55,13 @@ console.log(`\n  Created ./${name} - installing dependencies...\n`);
 execSync("npm install", { stdio: "inherit" });
 
 console.log(`\n  ✅ "${name}" is ready.`);
-console.log(`     cd ${name}`);
-console.log(`     run your coding agent (claude / codex / ...) and build your team's brain`);
-console.log(`     KR_HANDLE=${name} npm run submit   to enter the arena\n`);
+if (fromOneliner) {
+  // the one-liner's trailing `&& cd ${name}` lands them in the folder next
+  console.log(`     You'll land in ./${name} - run your coding agent (claude / codex / ...) there`);
+  console.log(`     and build your team's brain.`);
+} else {
+  console.log(`     cd ${name}`);
+  console.log(`     run your coding agent (claude / codex / ...) and build your team's brain`);
+}
+console.log(`     npm run coach  - watch it play live as you build`);
+console.log(`     npm run submit -- ${name}  - enter the arena\n`);
