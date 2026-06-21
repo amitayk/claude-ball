@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>claude-ball · favicon options</title>
+    <style>
+      body { margin: 0; background: #0c1210; color: #f1efe6; font: 15px/1.5 ui-sans-serif, system-ui, sans-serif; padding: 28px; }
+      h1 { text-align: center; }
+      p.intro { text-align: center; color: #9aa79c; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px; max-width: 1100px; margin: 24px auto; }
+      .opt { background: #141d18; border: 1px solid #243029; border-radius: 14px; padding: 18px; text-align: center; }
+      .name { font-weight: 700; margin-bottom: 4px; }
+      .desc { color: #9aa79c; font-size: 12.5px; min-height: 32px; }
+      .sizes { display: flex; gap: 18px; align-items: center; justify-content: center; margin: 14px 0 6px; }
+      .sizes .s16 { width: 16px; height: 16px; }
+      .sizes .s32 { width: 32px; height: 32px; }
+      .sizes .s64 { width: 64px; height: 64px; }
+      .sizes svg { display: block; }
+      .px { color: #5b6b60; font-size: 10px; }
+      /* a faux browser tab to judge it in context */
+      .tab { display: inline-flex; align-items: center; gap: 6px; background: #1b211e; border: 1px solid #2d342f; border-radius: 7px 7px 0 0; padding: 6px 10px; margin-top: 8px; font-size: 12px; color: #cdd6cf; }
+      .tab svg { width: 16px; height: 16px; }
+    </style>
+  </head>
+  <body>
+    <h1>⚽ favicon options</h1>
+    <p class="intro">Each shown at 64 / 32 / 16 px and in a tab. Tell me a number and I'll wire it in.</p>
+    <div class="grid" id="grid"></div>
+
+    <script>
+      // Each option is an SVG (viewBox 0 0 64 64), scalable to any favicon size.
+      const ball = (cx, cy, r, fill) => `
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>
+        <circle cx="${cx}" cy="${cy - r * 0.32}" r="${r * 0.22}" fill="#15201a"/>
+        <circle cx="${cx - r * 0.5}" cy="${cy + r * 0.28}" r="${r * 0.16}" fill="#15201a"/>
+        <circle cx="${cx + r * 0.5}" cy="${cy + r * 0.28}" r="${r * 0.16}" fill="#15201a"/>`;
+
+      const options = [
+        { name: "1 · Pitch tile", desc: "White ball on a green tile - reads as football-on-grass.",
+          svg: `<rect width="64" height="64" rx="14" fill="#2d8a5a"/>${ball(32, 32, 18, "#f7f7f2")}` },
+        { name: "2 · Tangerine ball", desc: "Bold solid ball in the brand accent. Most legible tiny.",
+          svg: `<rect width="64" height="64" rx="14" fill="#0c1210"/>${ball(32, 32, 19, "#ff7a3c")}` },
+        { name: "3 · cb monogram", desc: "Wordmark-style initials on tangerine. Distinct, not a generic ball.",
+          svg: `<rect width="64" height="64" rx="14" fill="#ff7a3c"/><text x="32" y="44" text-anchor="middle" font-family="ui-monospace,monospace" font-weight="800" font-size="34" fill="#241003">cb</text>` },
+        { name: "4 · Kickoff", desc: "Centre circle + ball on the spot - the game's signature moment.",
+          svg: `<rect width="64" height="64" rx="14" fill="#0c1210"/><line x1="32" y1="8" x2="32" y2="56" stroke="#2d8a5a" stroke-width="2"/><circle cx="32" cy="32" r="15" fill="none" stroke="#2d8a5a" stroke-width="2"/><circle cx="32" cy="32" r="6" fill="#f7f7f2"/>` },
+        { name: "5 · Ball + spark", desc: "Ball with a small AI spark. Nods to claude.",
+          svg: `<rect width="64" height="64" rx="14" fill="#0c1210"/>${ball(30, 34, 16, "#f7f7f2")}<path d="M50 12 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 z" fill="#ff7a3c"/>` },
+        { name: "6 · Tangerine + green ball", desc: "Two-tone brand ball (accent + pitch) on dark.",
+          svg: `<rect width="64" height="64" rx="14" fill="#0c1210"/><circle cx="32" cy="32" r="19" fill="#ff7a3c"/><path d="M32 13 a19 19 0 0 1 0 38 z" fill="#2d8a5a"/><circle cx="32" cy="32" r="5" fill="#f7f7f2"/>` },
+      ];
+
+      document.getElementById("grid").innerHTML = options.map((o) => `
+        <div class="opt">
+          <div class="name">${o.name}</div>
+          <div class="desc">${o.desc}</div>
+          <div class="sizes">
+            <div><svg class="s64" viewBox="0 0 64 64">${o.svg}</svg><div class="px">64</div></div>
+            <div><svg class="s32" viewBox="0 0 64 64">${o.svg}</svg><div class="px">32</div></div>
+            <div><svg class="s16" viewBox="0 0 64 64">${o.svg}</svg><div class="px">16</div></div>
+          </div>
+          <div class="tab"><svg viewBox="0 0 64 64">${o.svg}</svg> claude-ball</div>
+        </div>`).join("");
+    </script>
+  </body>
+</html>
