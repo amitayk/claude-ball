@@ -1,10 +1,8 @@
 # Fly.io config for the arena API + sandboxed runner.
 #
-# First deploy (via the GitHub launcher or `fly deploy`) uses EPHEMERAL storage —
-# the JSON ladder resets on redeploy. To make it persistent, create a volume and
-# re-add the [mounts] block below:
+# The JSON ladder store is persisted on a volume (see [mounts] below). Before the
+# first deploy of a fresh app, create the volume in this region:
 #   fly volumes create kr_data --size 1 --region ams
-#   (then set KR_DATA=/data/arena.json and uncomment [mounts])
 app = "claude-ball"
 primary_region = "ams"
 

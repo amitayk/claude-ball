@@ -6,6 +6,7 @@
     ".": "./src/server.ts"
   },
   "dependencies": {
+    "@claude-ball/arena": "0.1.0",
     "@claude-ball/ladder": "0.1.0"
   }
 }

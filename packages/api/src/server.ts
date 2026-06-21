@@ -17,6 +17,7 @@ const MIME: Record<string, string> = {
   ".html": "text/html",
   ".js": "text/javascript",
   ".css": "text/css",
+  ".svg": "image/svg+xml",
 };
 
 const store = new JsonStore(process.env.KR_DATA ?? ".data/arena.json");

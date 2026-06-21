@@ -7,7 +7,6 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages ./packages
 COPY templates ./templates
-COPY laika ./laika
 COPY apps ./apps
 COPY tsconfig.json ./
 

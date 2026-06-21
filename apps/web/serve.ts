@@ -9,6 +9,7 @@ const types: Record<string, string> = {
   ".html": "text/html",
   ".js": "text/javascript",
   ".css": "text/css",
+  ".svg": "image/svg+xml",
 };
 
 createServer(async (req, res) => {

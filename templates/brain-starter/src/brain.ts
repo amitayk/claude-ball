@@ -13,7 +13,7 @@ import { dist, kickoffBackPass } from "@claude-ball/brain-api";
  *   - Never shoots.
  */
 export const brain: Brain = {
-  name: "possession",
+  name: "my-team",
   params: {
     laneClearance: { default: 36, min: 10, max: 90, step: 1, label: "Lane clearance", help: "Clearance a pass lane needs from opponents. Higher = lanes count as blocked more easily, so it passes more cautiously." },
     laneIgnoreNear: { default: 35, min: 0, max: 100, step: 1, label: "Ignore opp. nearer than", help: "Opponents this close to the passer are ignored when judging lanes. Higher = attempts passes through more nearby pressure." },

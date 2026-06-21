@@ -23,11 +23,11 @@ fly auth signup              # ← this is the credit-card step
 
 # from the repo root
 fly launch --no-deploy       # pick an app name + region; keep the existing fly.toml
-fly volumes create kr_data --size 1 --region iad
+fly volumes create kr_data --size 1 --region ams
 fly deploy
 ```
 
-Note the URL Fly prints, e.g. `https://claude-ball-arena.fly.dev`.
+Note the URL Fly prints, e.g. `https://claude-ball.fly.dev`.
 
 ## 2. Web app → Cloudflare Pages or Vercel   (free)
 
@@ -40,7 +40,7 @@ The web app is static (`apps/web`). Deploy that folder:
 Then point it at the arena once (persists in the browser):
 
 ```
-https://<your-web-host>/?api=https://claude-ball-arena.fly.dev
+https://<your-web-host>/?api=https://claude-ball.fly.dev
 ```
 
 (For a permanent default, set `window.KR_API` in `apps/web/index.html`.)
@@ -52,10 +52,10 @@ onboarding is:
 
 ```bash
 git clone <this-repo> && cd claude-ball && npm install
-cd laika                       # or copy templates/brain-starter to your own dir
+npm run new my-bot && cd my-bot
 # open Claude here — CLAUDE.md keeps it to coding only
 npm run coach                  # build & test in the workbench
-KR_HANDLE=you KR_API=https://claude-ball-arena.fly.dev npm run submit
+KR_HANDLE=you KR_API=https://claude-ball.fly.dev npm run submit
 ```
 
 They appear on the leaderboard and anyone can watch their matches.
