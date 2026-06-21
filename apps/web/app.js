@@ -212,5 +212,47 @@ function updateBotName() {
 }
 $("botName").addEventListener("input", updateBotName);
 
+// Widen the field card from a centred card toward full width as it snaps to the
+// top of the viewport (full width = fully snapped).
+const theaterEl = document.querySelector(".theater");
+const NARROW = 1080;
+let snapTick = false;
+function applySnapWidth() {
+  snapTick = false;
+  const top = Math.max(0, theaterEl.getBoundingClientRect().top);
+  const start = window.innerHeight * 0.55; // begin widening within this distance of the top
+  const p = Math.max(0, Math.min(1, 1 - top / start));
+  const full = document.documentElement.clientWidth;
+  theaterEl.style.maxWidth = Math.round(NARROW + Math.max(0, full - NARROW) * p) + "px";
+  theaterEl.style.borderRadius = (14 * (1 - p)).toFixed(1) + "px";
+}
+addEventListener("scroll", () => { if (!snapTick) { snapTick = true; requestAnimationFrame(applySnapWidth); } }, { passive: true });
+addEventListener("resize", applySnapWidth);
+applySnapWidth();
+
+// Gentle, directional snap: when scrolling settles near the field, ease it to the
+// top — but only in the direction you're already heading, so scrolling PAST it
+// never yanks you back.
+let lastY = window.scrollY, scrollDir = 0, snapTimer = null, snapping = false;
+function maybeSnap() {
+  if (snapping) return;
+  const top = theaterEl.getBoundingClientRect().top;
+  const BAND = 130;
+  let should = false;
+  if (scrollDir > 0 && top > 2 && top < BAND) should = true;        // arriving from above
+  else if (scrollDir < 0 && top < -2 && top > -BAND) should = true; // returning from below
+  if (!should) return;
+  snapping = true;
+  window.scrollBy({ top, behavior: "smooth" });
+  setTimeout(() => { snapping = false; }, 500);
+}
+addEventListener("scroll", () => {
+  const y = window.scrollY;
+  if (y !== lastY) scrollDir = y > lastY ? 1 : -1;
+  lastY = y;
+  if (snapTimer) clearTimeout(snapTimer);
+  snapTimer = setTimeout(maybeSnap, 140);
+}, { passive: true });
+
 refresh();
 setInterval(refresh, 6000);
