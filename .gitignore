@@ -6,7 +6,6 @@ packages/viewer/replay.json
 templates/brain-starter/viewer/replay.json
 *.replay.json
 .kr-versions/
-notesamitay.txt
 
 .data/
 fly.io-token.txt
@@ -14,3 +13,4 @@ fly.io-token.txt
 .kr-key
 design/fly-org-token
 *fly-org-token*
+docs/
