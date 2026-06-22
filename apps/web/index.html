@@ -10,6 +10,8 @@
   <body>
     <div class="bg-grid" aria-hidden="true"></div>
 
+    <a id="starBtn" class="star starfixed" target="_blank" rel="noopener">★ Star on GitHub</a>
+
     <header class="hero">
       <div class="hero-inner">
         <h1>The Arena</h1>
@@ -18,20 +20,23 @@
           Design your soccer team's <b>brain</b> in plain words - your AI writes the code.
           Submit it and climb the ladder against the house bots and everyone else.
         </p>
-        <div class="herobtns">
-          <button id="rulesBtn" class="ghostbtn" type="button">📖 How it works</button>
-          <a id="starBtn" class="star" target="_blank" rel="noopener">★ Star on GitHub</a>
-        </div>
       </div>
     </header>
+
+    <div class="actions">
+      <button id="playBtn" class="primary big" type="button">▶ Play / Compete</button>
+      <button id="howBtn" class="ghostbtn" type="button">📖 How it works</button>
+    </div>
 
     <section class="stage">
       <section class="theater card">
         <div class="fieldtop">
           <div class="matchup">
-            <select id="homeSel" class="sel home"></select>
+            <span class="seldot home" title="Home (blue)"></span>
+            <select id="homeSel" class="sel"></select>
             <span class="vs">vs</span>
-            <select id="awaySel" class="sel away"></select>
+            <span class="seldot away" title="Away (gold)"></span>
+            <select id="awaySel" class="sel"></select>
           </div>
           <span class="livebadge" id="conn">connecting…</span>
         </div>
@@ -59,8 +64,25 @@
         </div>
       </section>
 
-      <aside class="howto card">
-        <h2>Compete</h2>
+      <section class="board card">
+        <div class="board-head">
+          <h2>Leaderboard <span id="boardHint" class="boardhint"></span></h2>
+          <span class="muted small" id="count"></span>
+        </div>
+        <div class="boardsel" id="boardSel">Click two bots to watch them play - 0 selected</div>
+        <ol id="rows" class="rows"><li class="muted">loading…</li></ol>
+        <div class="legend-inline">
+          <span><span class="pill lib">house</span> built-in bot</span>
+          <span><span class="pill you">challenger</span> a submitted bot</span>
+          <span><b class="lg">strength</b> skill rating - higher usually wins</span>
+          <span><b class="lg">W-D-L</b> record vs the house bots</span>
+        </div>
+      </section>
+    </section>
+
+    <dialog id="competeModal" class="modal">
+      <div class="modal-inner howto">
+        <div class="modal-head"><h2>Compete</h2><button class="modal-x" type="button" data-close aria-label="Close">✕</button></div>
         <p class="muted small">Build a bot with your AI agent, then put it on the ladder.</p>
         <ol class="steps">
           <li><b>Name your bot.</b>
@@ -85,29 +107,14 @@
           </div>
           <div class="cmdrow"><code class="cmd" id="cmdInstall">brew install git node</code><button class="copy">Copy</button></div>
         </details>
-      </aside>
-    </section>
+      </div>
+    </dialog>
 
-    <section class="boardwrap">
-      <section class="board card">
-        <div class="board-head">
-          <h2>Leaderboard</h2>
-          <span class="muted small" id="count"></span>
-        </div>
-        <div class="boardsel" id="boardSel">Click two bots to watch them play - 0 selected</div>
-        <ol id="rows" class="rows"><li class="muted">loading…</li></ol>
-        <div class="legend-inline">
-          <span><span class="pill lib">house</span> built-in bot</span>
-          <span><span class="pill you">challenger</span> a submitted bot</span>
-          <span><b class="lg">strength</b> skill rating - higher usually wins</span>
-          <span><b class="lg">W-D-L</b> record vs the house bots</span>
-        </div>
-      </section>
-    </section>
+    <dialog id="howModal" class="modal">
+      <div class="modal-inner">
+        <div class="modal-head"><h2>How it works</h2><button class="modal-x" type="button" data-close aria-label="Close">✕</button></div>
 
-    <section class="rules" id="rules">
-      <div class="card">
-        <h2>How the game works</h2>
+        <h3>The game</h3>
         <ul class="rulelist">
           <li><b>4 players a side</b>, one ~90-second match. You command your players: move to a spot, pass, or shoot.</li>
           <li><b>Movement has momentum.</b> Players accelerate to a top speed and can't stop or turn on a dime; sharp turns cost speed.</li>
@@ -121,9 +128,8 @@
           <li><b>Scoring:</b> put the ball through the opponent's goal. Most goals in 90 seconds wins.</li>
           <li><b>Deterministic:</b> the same matchup and seed always produce the exact same game.</li>
         </ul>
-      </div>
-      <div class="card">
-        <h2>How to coach</h2>
+
+        <h3>How to coach</h3>
         <p class="muted small">You describe the behaviour in plain words; your AI writes the code. The trick is to think in phases - decide which phase you're in, then give each player a job.</p>
         <ul class="rulelist">
           <li><b>Kickoff:</b> you must play the ball back - pick who takes it and the safe outlet.</li>
@@ -136,12 +142,11 @@
           <li><b>Iterate small:</b> change one idea, watch where you concede, commit - roll back from Versions if it got worse.</li>
         </ul>
       </div>
-    </section>
+    </dialog>
 
     <footer class="muted small">deterministic matches · sandboxed brains · <span id="apihint"></span></footer>
     <script type="module" src="./app.js"></script>
-    <!-- GoatCounter: privacy-friendly, cookieless pageview/referrer/country stats.
-         Dashboard: https://claudeball.goatcounter.com (claim the code at goatcounter.com/signup) -->
+    <!-- GoatCounter: privacy-friendly, cookieless pageview/referrer/country stats. -->
     <script data-goatcounter="https://claudeball.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
   </body>
 </html>

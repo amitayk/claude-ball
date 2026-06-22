@@ -134,6 +134,8 @@ function renderPicks() {
   if (picks.length === 0) s.textContent = "Click two bots to watch them play - 0 selected";
   else if (picks.length === 1) s.innerHTML = `<b>${esc(cap(picks[0]))}</b> selected - pick an opponent`;
   else s.innerHTML = `<b class="cH">${esc(cap(picks[0]))}</b> vs <b class="cA">${esc(cap(picks[1]))}</b>`;
+  // a prompt next to the leaderboard title once exactly one bot is picked
+  $("boardHint").textContent = picks.length === 1 ? "choose a second bot" : "";
 }
 
 function updateUrl(home, away, seed) {
@@ -190,10 +192,15 @@ $("fsBtn").addEventListener("click", () => {
   else el.requestFullscreen?.();
 });
 
-// Rules button -> jump to the rules section
-$("rulesBtn").addEventListener("click", () => {
-  $("rules").scrollIntoView({ behavior: "smooth", block: "start" });
-});
+// Modals: Play/Compete and How it works (native <dialog>)
+$("playBtn").addEventListener("click", () => $("competeModal").showModal());
+$("howBtn").addEventListener("click", () => $("howModal").showModal());
+for (const dlg of document.querySelectorAll("dialog.modal")) {
+  dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); }); // click backdrop to close
+}
+for (const b of document.querySelectorAll("[data-close]")) {
+  b.addEventListener("click", () => b.closest("dialog")?.close());
+}
 
 // keyboard: space = play/pause, ← → = step a frame (ignored while typing)
 document.addEventListener("keydown", (e) => {

@@ -60,6 +60,12 @@ code { background: #0e1311; border: 1px solid var(--line); border-radius: 5px; p
 }
 .ghostbtn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
 .star:hover { border-color: var(--gold); transform: translateY(-1px); color: var(--gold); }
+.starfixed { position: fixed; top: 14px; right: 16px; z-index: 6; }
+
+/* primary actions just above the field */
+.actions { position: relative; z-index: 1; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; padding: 4px clamp(16px, 4vw, 40px) 16px; }
+.primary.big { font-size: 15px; padding: 11px 22px; border-radius: 999px; }
+.primary.big:hover { transform: translateY(-1px); }
 
 /* ---------- shared card ---------- */
 .card { background: linear-gradient(180deg, var(--card), #141815); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: 0 10px 40px rgba(0,0,0,0.35); }
@@ -69,14 +75,18 @@ code { background: #0e1311; border: 1px solid var(--line); border-radius: 5px; p
 .stage {
   position: relative; z-index: 1; max-width: 1320px; margin: 0 auto 22px;
   padding: 0 clamp(16px, 4vw, 40px);
-  display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 22px; align-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 22px; align-items: start;
 }
 @media (max-width: 1040px) { .stage { grid-template-columns: 1fr; } }
 
 .theater { padding: 14px; }
 .fieldtop { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.matchup { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.matchup .vs { color: var(--muted); font-style: italic; }
+.matchup { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.matchup .vs { color: var(--muted); font-style: italic; margin: 0 2px; }
+/* team indicator: a colored dot in front of each picker (matches the pitch colors) */
+.seldot { width: 11px; height: 11px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(0,0,0,0.25); }
+.seldot.home { background: var(--home); }
+.seldot.away { background: var(--away); }
 .livebadge { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .livebadge.ok { color: var(--pitch); font-weight: 600; }
 .livebadge.ok::before { content: "● "; }
@@ -90,8 +100,6 @@ code { background: #0e1311; border: 1px solid var(--line); border-radius: 5px; p
 }
 .sel:hover, #speedSel:hover { border-color: #475049; }
 .sel:focus, #speedSel:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(244,194,69,0.15); }
-.sel.home { border-left: 3px solid var(--home); }
-.sel.away { border-left: 3px solid var(--away); }
 
 .stagewrap { display: flex; justify-content: center; }
 .theater canvas { width: auto; height: auto; max-width: 100%; max-height: 62vh; border-radius: 10px; background: var(--pitch); }
@@ -170,7 +178,14 @@ button.primary:hover { filter: brightness(1.06); }
 
 /* ---------- leaderboard (full width) ---------- */
 .boardwrap { position: relative; z-index: 1; max-width: 1320px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px) 36px; }
-.board-head { display: flex; align-items: baseline; justify-content: space-between; }
+.board-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.board-head h2 { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.boardhint {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.3px; text-transform: none;
+  color: var(--accent-ink); background: var(--accent); padding: 2px 8px; border-radius: 999px;
+  animation: hintpulse 1.3s ease-in-out infinite;
+}
+@keyframes hintpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
 .boardsel { margin: 0 0 10px; font-size: 13px; color: var(--muted); }
 .boardsel b { color: var(--text); }
 .boardsel .cH { color: var(--home); } .boardsel .cA { color: var(--away); }
@@ -215,6 +230,22 @@ button.primary:hover { filter: brightness(1.06); }
 .legend-inline span { display: inline-flex; align-items: center; gap: 6px; }
 .legend-inline .lg { color: var(--text); }
 
+/* ---------- modals (Compete, How it works) ---------- */
+dialog.modal {
+  border: 1px solid var(--line); border-radius: 16px; padding: 0;
+  background: linear-gradient(180deg, var(--card), #141815); color: var(--text);
+  max-width: 640px; width: calc(100% - 32px); max-height: 86vh; overflow: auto;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.55);
+}
+dialog.modal::backdrop { background: rgba(6,9,8,0.62); backdrop-filter: blur(2px); }
+.modal-inner { padding: 22px 24px 26px; }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.modal-head h2 { margin: 0; }
+.modal-x { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 8px; width: 30px; height: 30px; font-size: 14px; cursor: pointer; flex: none; }
+.modal-x:hover { color: var(--text); border-color: #475049; }
+.modal h3 { margin: 20px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--accent); }
+.modal .rulelist { columns: 1; }
+
 /* ---------- rules ---------- */
 .rules { position: relative; z-index: 1; max-width: 1320px; margin: 0 auto 8px; padding: 0 clamp(16px, 4vw, 40px); scroll-margin-top: 16px; }
 .rules .card + .card { margin-top: 18px; }
@@ -228,7 +259,8 @@ footer { position: relative; z-index: 1; text-align: center; padding: 22px; }
 
 /* ---------- mobile ---------- */
 @media (max-width: 600px) {
-  .hero { padding: 28px 16px 12px; }
+  .starfixed { top: 8px; right: 8px; padding: 6px 11px; font-size: 11px; }
+  .hero { padding: 40px 16px 12px; }
   .hero .tag { font-size: 14px; }
   .card { padding: 14px; }
   .theater { padding: 12px; }
