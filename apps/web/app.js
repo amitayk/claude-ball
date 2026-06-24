@@ -232,7 +232,9 @@ const SAFE_NAME = /^[a-z0-9_-]{2,24}$/i;
 function updateBotName() {
   const raw = $("botName").value.trim();
   const name = raw || "your-bot-name";
-  $("cmdSubmit").textContent = `npm run submit -- ${name}`;
+  const tour = $("tourCode") ? $("tourCode").value.trim() : "";
+  const tourFlag = tour ? ` --tournament ${tour}` : "";
+  $("cmdSubmit").textContent = `npm run submit -- ${name}${tourFlag}`;
   $("cmdOneliner").textContent = `git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new ${name} -- --here && cd ${name}`;
   $("cmdDesktop").textContent =
     `I want to build a bot for Claude Ball (a deterministic 4-a-side football AI competition). Set it up on my Desktop using your filesystem + terminal access:
@@ -242,7 +244,7 @@ function updateBotName() {
 3. Scaffold my bot: \`npm run new ${name} -- --here\`, then cd into the \`${name}\` folder.
 4. Tell me the full path and read CLAUDE.md - it keeps you to coding; the tactics are mine.
 
-Then I'll describe my football tactics and you'll write the bot code in that folder. When I'm happy, run \`npm run submit -- ${name}\` to put it on the ladder.`;
+Then I'll describe my football tactics and you'll write the bot code in that folder. When I'm happy, run \`npm run submit -- ${name}${tourFlag}\` to put it on the ladder.`;
   const st = $("nameStatus");
   let ok = false;
   if (!raw) {
@@ -262,6 +264,7 @@ Then I'll describe my football tactics and you'll write the bot code in that fol
   for (const b of document.querySelectorAll(".copy[data-name]")) b.disabled = !ok;
 }
 $("botName").addEventListener("input", updateBotName);
+if ($("tourCode")) $("tourCode").addEventListener("input", updateBotName);
 updateBotName();
 
 // OS tabs: the only OS-specific command is the install one. Auto-detect.
