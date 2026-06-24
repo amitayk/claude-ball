@@ -142,9 +142,10 @@ export class JsonStore {
     writeFileSync(this.toursFile, JSON.stringify(this.tours, null, 2));
   }
 
-  /** Public ladder — excludes tournament bots so org games stay private. */
+  /** Public ladder — every bot, highest Elo first (tournament bots included;
+   *  each carries its `tournament` tag so the UI can badge it). */
   leaderboard(): PublicBot[] {
-    return [...this.bots].filter((b) => !b.tournament).sort((a, b) => b.elo - a.elo).map(strip);
+    return [...this.bots].sort((a, b) => b.elo - a.elo).map(strip);
   }
 
   find(idOrName: string): BotRecord | undefined {
