@@ -517,9 +517,10 @@ if ($("tourCode")) $("tourCode").addEventListener("input", updateBotName);
 // Tournament code is hidden by default (it scares newcomers); reveal on click.
 if ($("tourToggle")) $("tourToggle").addEventListener("click", () => {
   const row = $("tourRow");
-  row.hidden = !row.hidden;
-  $("tourToggle").textContent = row.hidden ? "joining a tournament?" : "✕ not in a tournament";
-  if (!row.hidden) $("tourCode").focus();
+  const willShow = row.style.display === "none"; // [hidden] loses to .namerow{display:flex}, so drive display
+  row.style.display = willShow ? "flex" : "none";
+  $("tourToggle").textContent = willShow ? "✕ not in a tournament" : "joining a tournament?";
+  if (willShow) $("tourCode").focus();
   else if ($("tourCode").value) { $("tourCode").value = ""; updateBotName(); } // clear code when collapsed
 });
 updateBotName();
