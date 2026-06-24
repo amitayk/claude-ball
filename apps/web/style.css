@@ -125,13 +125,38 @@ button.primary:hover { filter: brightness(1.06); }
 .fieldtop-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
 .fieldtop-right .livebadge { margin-left: 0; }
 .coachbtn {
-  display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap;
-  background: #21271f; color: var(--text); border: 1px solid var(--line); border-radius: 999px;
-  padding: 5px 13px; font: inherit; font-size: 12.5px; font-weight: 600; transition: border-color .12s, color .12s, background .12s;
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer; white-space: nowrap;
+  background: linear-gradient(180deg, #262f25, #1a201a); color: var(--text);
+  border: 1px solid #2f3b30; border-radius: 999px; padding: 5px 8px 5px 11px;
+  font: inherit; font-size: 12.5px; font-weight: 700; letter-spacing: .2px;
+  transition: border-color .14s, box-shadow .14s, transform .12s, background .14s;
 }
-.coachbtn:hover { border-color: var(--accent); color: var(--accent); }
-.coachbtn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.coachbtn:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,122,60,.12); transform: translateY(-1px); }
 .coachbtn[hidden] { display: none; }
+.coach-ico { color: var(--accent); flex: none; }
+.coach-label { line-height: 1; }
+.coach-live {
+  display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 6px;
+  background: rgba(70,209,127,.13); border-radius: 999px;
+  font-size: 9.5px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase; color: #54d98a;
+}
+.coach-dot { width: 6px; height: 6px; border-radius: 50%; background: #54d98a; box-shadow: 0 0 0 0 rgba(84,217,138,.6); animation: coachpulse 1.7s ease-out infinite; }
+@keyframes coachpulse { 0% { box-shadow: 0 0 0 0 rgba(84,217,138,.55); } 70% { box-shadow: 0 0 0 5px rgba(84,217,138,0); } 100% { box-shadow: 0 0 0 0 rgba(84,217,138,0); } }
+/* active = Knobs tab open: go solid accent */
+.coachbtn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: none; transform: none; }
+.coachbtn.active .coach-ico { color: var(--accent-ink); }
+.coachbtn.active .coach-live { background: rgba(36,16,3,.18); color: var(--accent-ink); }
+.coachbtn.active .coach-dot { background: var(--accent-ink); box-shadow: none; animation: none; }
+
+/* periodic attention shakes — JS picks one at random every few seconds */
+.coachbtn.sh1 { animation: sh1 var(--shdur,.45s) ease both; }
+.coachbtn.sh2 { animation: sh2 var(--shdur,.45s) ease both; }
+.coachbtn.sh3 { animation: sh3 var(--shdur,.5s) ease both; }
+.coachbtn.sh4 { animation: sh4 var(--shdur,.5s) cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes sh1 { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-2px); } 40% { transform: translateX(2px); } 60% { transform: translateX(-1.5px); } 80% { transform: translateX(1.5px); } }
+@keyframes sh2 { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 50% { transform: rotate(2.5deg); } 75% { transform: rotate(-1.5deg); } }
+@keyframes sh3 { 0%,100% { transform: translate(0,0) rotate(0); } 30% { transform: translate(-1.5px,1px) rotate(-2deg); } 65% { transform: translate(1.5px,-1px) rotate(2deg); } }
+@keyframes sh4 { 0%,100% { transform: translateX(0); } 15% { transform: translateX(-3px); } 30% { transform: translateX(3px); } 45% { transform: translateX(-2px); } 60% { transform: translateX(2px); } 75% { transform: translateX(-1px); } }
 
 /* ---------- sidebar tabs (Leaderboard / Knobs) ---------- */
 .sidebar-tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
@@ -171,8 +196,7 @@ button.primary:hover { filter: brightness(1.06); }
 .knob-val { color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; }
 .knob input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; cursor: pointer; }
 .knob.changed .knob-label::after { content: " •"; color: var(--accent); }
-.knob-help { color: var(--muted); font-size: 11px; line-height: 1.35; margin-top: 3px; max-height: 0; overflow: hidden; opacity: 0; transition: max-height .15s, opacity .15s; }
-.knob:hover .knob-help, .knob:focus-within .knob-help { max-height: 80px; opacity: 1; }
+.knob-help { color: var(--muted); font-size: 11px; line-height: 1.35; margin-top: 3px; }
 
 /* seed + dice — dice is its own bright control */
 .seedfield { display: inline-flex; align-items: center; gap: 0; border: 1px solid var(--line); border-radius: 9px; background: #11160f; overflow: hidden; }

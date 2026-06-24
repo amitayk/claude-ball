@@ -250,6 +250,26 @@ function switchTab(tab) {
 for (const b of document.querySelectorAll("#sidebarTabs button")) b.addEventListener("click", () => switchTab(b.dataset.tab));
 $("coachBtn").addEventListener("click", () => switchTab("knobs"));
 
+// Gently nudge attention to "Coach live" every few seconds: a random shake of a
+// slightly different shape/speed each time. Only while it's visible and the user
+// hasn't opened the Knobs tab yet.
+const SHAKES = ["sh1", "sh2", "sh3", "sh4"];
+function scheduleShake() {
+  const delay = 3500 + Math.random() * 4000; // 3.5–7.5s apart
+  setTimeout(() => {
+    const btn = $("coachBtn");
+    if (btn && !btn.hidden && !btn.classList.contains("active")) {
+      const cls = SHAKES[Math.floor(Math.random() * SHAKES.length)];
+      btn.style.setProperty("--shdur", (0.4 + Math.random() * 0.25).toFixed(2) + "s");
+      btn.classList.add(cls);
+      const done = () => { btn.classList.remove(cls); btn.removeEventListener("animationend", done); };
+      btn.addEventListener("animationend", done);
+    }
+    scheduleShake();
+  }, delay);
+}
+scheduleShake();
+
 function updateResetVisible() {
   const changed = !!(overridesFor("home", $("homeSel").value) || overridesFor("away", $("awaySel").value));
   $("knobsReset").hidden = !changed;
