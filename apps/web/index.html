@@ -70,7 +70,10 @@
             <span class="seldot away" title="Away (gold)"></span>
             <select id="awaySel" class="sel"></select>
           </div>
-          <span class="livebadge" id="conn">connecting…</span>
+          <div class="fieldtop-right">
+            <button id="coachBtn" class="coachbtn" type="button" title="Tune the bots' knobs and watch live" hidden>🎛 Coach live</button>
+            <span class="livebadge" id="conn">connecting…</span>
+          </div>
         </div>
         <div class="stagewrap"><canvas id="pitch" width="1050" height="680"></canvas></div>
         <div id="stageMsg" class="stagemsg"></div>
@@ -94,15 +97,37 @@
             <button id="fsBtn" title="Fullscreen (← → step, space play)">⛶</button>
           </div>
         </div>
+      </section>
 
-        <!-- Live knob tuning: house-bot matchups re-simulate instantly in the
-             browser; matchups with a challenger bot re-run on the server. -->
-        <details class="knobs" id="knobs" hidden>
-          <summary>
-            <span class="knobs-title">⚙ Knobs <span id="knobsCount" class="muted small"></span></span>
-            <button type="button" id="knobsReset" class="knobs-reset">Reset</button>
-          </summary>
-          <p class="muted small knobs-note" id="knobsNote"></p>
+      <section class="board card">
+        <div class="sidebar-tabs" id="sidebarTabs">
+          <button data-tab="board" class="active" type="button">Leaderboard</button>
+          <button data-tab="knobs" id="knobsTab" type="button" hidden>⚙ Knobs <span id="knobsTabCount" class="muted small"></span></button>
+        </div>
+
+        <!-- Leaderboard tab -->
+        <div class="tabpanel" data-panel="board">
+          <div class="board-head">
+            <h2>Leaderboard <span id="boardHint" class="boardhint"></span></h2>
+            <span class="muted small" id="count"></span>
+          </div>
+          <div class="boardsel" id="boardSel">Click two bots to watch them play - 0 selected</div>
+          <ol id="rows" class="rows"><li class="muted">loading…</li></ol>
+          <div class="legend-inline">
+            <span><span class="pill lib">house</span> built-in bot</span>
+            <span><span class="pill you">challenger</span> a submitted bot</span>
+            <span><b class="lg">strength</b> skill rating - higher usually wins</span>
+            <span><b class="lg">W-D-L</b> record vs the house bots</span>
+          </div>
+        </div>
+
+        <!-- Knobs tab: tune both bots; every change re-runs the match -->
+        <div class="tabpanel knobs" data-panel="knobs" hidden>
+          <div class="knobs-restart">↻ Every change <b>re-runs the match from kickoff.</b></div>
+          <div class="knobs-bar">
+            <span class="muted small knobs-note" id="knobsNote"></span>
+            <button type="button" id="knobsReset" class="knobs-reset" hidden>Reset</button>
+          </div>
           <div class="knobs-cols">
             <div class="knobs-col" data-side="home">
               <div class="knobs-col-head"><span class="seldot home"></span><b id="knobsHomeName">Home</b></div>
@@ -113,21 +138,6 @@
               <div class="knobs-list" id="knobsAway"></div>
             </div>
           </div>
-        </details>
-      </section>
-
-      <section class="board card">
-        <div class="board-head">
-          <h2>Leaderboard <span id="boardHint" class="boardhint"></span></h2>
-          <span class="muted small" id="count"></span>
-        </div>
-        <div class="boardsel" id="boardSel">Click two bots to watch them play - 0 selected</div>
-        <ol id="rows" class="rows"><li class="muted">loading…</li></ol>
-        <div class="legend-inline">
-          <span><span class="pill lib">house</span> built-in bot</span>
-          <span><span class="pill you">challenger</span> a submitted bot</span>
-          <span><b class="lg">strength</b> skill rating - higher usually wins</span>
-          <span><b class="lg">W-D-L</b> record vs the house bots</span>
         </div>
       </section>
     </section>

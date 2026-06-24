@@ -222,18 +222,33 @@ function buildSide(side, name) {
 }
 
 function renderKnobs(home, away) {
-  if (!$("knobs")) return;
+  if (!$("knobsTab")) return;
   const total = buildSide("home", home) + buildSide("away", away);
   pendingUrlKnobs = null; // shared-link values are a one-time apply
-  $("knobs").hidden = total === 0;
-  $("knobsCount").textContent = total ? `(${total})` : "";
+  const hasKnobs = total > 0;
+  // The Knobs tab + "Coach live" shortcut only exist when there's something to tune.
+  $("knobsTab").hidden = !hasKnobs;
+  $("coachBtn").hidden = !hasKnobs;
+  $("knobsTabCount").textContent = hasKnobs ? `(${total})` : "";
   const bothHouse = !!(houseBots[home] && houseBots[away]);
   $("knobsNote").textContent = bothHouse
-    ? "Drag a knob — the match replays instantly in your browser."
-    : "Tuning a house bot re-runs the match on the server (~1–2s).";
-  $("knobsNote").hidden = total === 0;
+    ? "Runs instantly in your browser."
+    : "Tuning a house bot re-runs on the server (~1–2s).";
+  if (!hasKnobs && currentTab === "knobs") switchTab("board"); // nothing to tune → back to board
   updateResetVisible();
 }
+
+// ---------- sidebar tabs ----------
+let currentTab = "board";
+function switchTab(tab) {
+  if (tab === "knobs" && $("knobsTab").hidden) return; // no knobs to show
+  currentTab = tab;
+  for (const b of document.querySelectorAll("#sidebarTabs button")) b.classList.toggle("active", b.dataset.tab === tab);
+  for (const p of document.querySelectorAll(".board .tabpanel")) p.hidden = p.dataset.panel !== tab;
+  $("coachBtn").classList.toggle("active", tab === "knobs");
+}
+for (const b of document.querySelectorAll("#sidebarTabs button")) b.addEventListener("click", () => switchTab(b.dataset.tab));
+$("coachBtn").addEventListener("click", () => switchTab("knobs"));
 
 function updateResetVisible() {
   const changed = !!(overridesFor("home", $("homeSel").value) || overridesFor("away", $("awaySel").value));
@@ -323,28 +338,36 @@ async function watch() {
   }
 }
 
-// Re-run after a knob change: keep the matchup, preserve playback position, stay quiet.
+// Re-run after a knob change. The match is a brand-new game, so we restart it
+// from kickoff (player.load resets to frame 0 and plays) and flash a notice —
+// making it obvious that turning a knob re-runs the whole match.
 async function resim() {
   const home = $("homeSel").value, away = $("awaySel").value, seed = $("seedInput").value || 1;
   if (!home || !away) return;
   updateUrl(home, away, seed);
   const token = ++runToken;
-  const frac = player.replay ? player.i / player.replay.frames.length : 0;
-  const wasPlaying = player.playing;
   const serverPath = !(houseBots[home] && houseBots[away]);
-  if (serverPath) { $("stageMsg").className = "stagemsg loading"; $("stageMsg").textContent = "re-running on server…"; }
+  $("stageMsg").className = serverPath ? "stagemsg loading" : "stagemsg flash";
+  $("stageMsg").textContent = serverPath ? "↻ re-running on server…" : "↻ re-running from kickoff…";
   try {
     const { replay, homeName, awayName } = await simulate(home, away, seed);
     if (token !== runToken) return;
-    player.load(replay, { home: homeName, away: awayName });
-    const len = replay.frames.length;
-    player.i = Math.min(len - 1, Math.round(frac * len)); // resume where they were watching
-    player.playing = wasPlaying;
-    if (serverPath) { $("stageMsg").className = "stagemsg"; $("stageMsg").textContent = ""; }
+    player.load(replay, { home: homeName, away: awayName }); // restarts from kickoff, autoplays
+    flashRestart(token);
   } catch (e) {
     if (token !== runToken) return;
     $("stageMsg").className = "stagemsg err"; $("stageMsg").textContent = e?.message || "re-run failed";
   }
+}
+
+// Briefly show a "restarted" notice on the field, then clear it (unless a newer run took over).
+function flashRestart(token) {
+  $("stageMsg").className = "stagemsg flash";
+  $("stageMsg").textContent = "↻ restarted with new knobs";
+  setTimeout(() => {
+    if (token !== runToken) return;
+    $("stageMsg").className = "stagemsg"; $("stageMsg").textContent = "";
+  }, 900);
 }
 
 let resimTimer = null;
