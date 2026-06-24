@@ -5,8 +5,16 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 const slug = new URLSearchParams(location.search).get("slug") || "";
-let player = null;
 
+let player = null;
+let result = null;            // current league result { games, standings, champion }
+let refs = new Map();         // id -> { name, handle }
+let games = [];
+let played = 0;               // games revealed so far
+let playing = false, done = false, speed = 1;
+let t1 = null, t2 = null;
+
+// ── load ──────────────────────────────────────────────────────────────────────
 async function load() {
   let data;
   try {
@@ -26,55 +34,149 @@ async function load() {
   const ranked = [...bots].sort((a, b) => b.elo - a.elo);
   $("entrants").innerHTML = ranked.length
     ? ranked.map((b, i) => `<li><div class="ent"><div><b>${i + 1}. ${esc(cap(b.name))}</b> <span class="meta">@${esc(b.handle)}</span></div><span class="meta">strength ${b.elo}</span></div></li>`).join("")
-    : `<li class="muted">No bots yet - share the code above to fill the bracket.</li>`;
+    : `<li class="muted">No bots yet - share the code above to fill the league.</li>`;
   $("runBtn").disabled = bots.length < 2;
-  $("runBtn").textContent = t.status === "done" ? "↻ Re-run playoff" : "▶ Start playoff";
-  if (t.result) renderBracket(t.result);
+  $("runBtn").textContent = t.status === "done" ? "↻ Re-run league" : "▶ Kick off the league";
+
+  if (t.result) { result = t.result; finalize(false); } // show finished table + podium, ready to replay
 }
 
 $("runBtn").addEventListener("click", async () => {
   $("runBtn").disabled = true;
-  $("runMsg").className = "stagemsg loading"; $("runMsg").textContent = "running the playoff - playing sandboxed matches…";
+  $("runMsg").className = "stagemsg loading";
+  $("runMsg").textContent = "playing the league - running sandboxed matches…";
   try {
     const r = await fetch(`${API}/api/tournament/run`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
     const d = await r.json();
     if (!r.ok) { $("runMsg").className = "stagemsg err"; $("runMsg").textContent = d.error || "failed"; return; }
     $("runMsg").className = "stagemsg"; $("runMsg").textContent = "";
-    renderBracket(d.tournament.result);
-    $("runBtn").textContent = "↻ Re-run playoff";
+    result = d.tournament.result;
+    $("runBtn").textContent = "↻ Re-run league";
+    startCinematic();
   } catch {
-    $("runMsg").className = "stagemsg err"; $("runMsg").textContent = "couldn't run the playoff";
+    $("runMsg").className = "stagemsg err"; $("runMsg").textContent = "couldn't run the league";
   } finally {
     $("runBtn").disabled = false;
   }
 });
 
-function renderBracket(result) {
-  $("bracketCard").style.display = "";
-  $("champ").innerHTML = `<div class="champ">🏆 Champion: <b>${esc(cap(result.champion.name))}</b> <span class="meta">@${esc(result.champion.handle)}</span></div>`;
-  const n = result.rounds.length;
-  const roundName = (i) => (i === n - 1 ? "Final" : i === n - 2 ? "Semifinals" : i === n - 3 ? "Quarterfinals" : `Round ${i + 1}`);
-  $("bracket").innerHTML = result.rounds
-    .map((rnd, ri) => `<div class="round"><div class="roundname">${roundName(ri)}</div>${rnd.map(matchCard).join("")}</div>`)
-    .join("");
-  for (const el of document.querySelectorAll(".match[data-a]")) {
-    el.addEventListener("click", () => watch(el.dataset.a, el.dataset.b, Number(el.dataset.seed), el.dataset.label));
+// ── standings (computed live from the games revealed so far) ────────────────────
+function indexRefs() {
+  refs = new Map(result.standings.map((s) => [s.id, { name: s.name, handle: s.handle }]));
+  games = result.games;
+}
+function computeStandings(upTo) {
+  const t = new Map([...refs].map(([id, r]) => [id, { id, name: r.name, handle: r.handle, played: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }]));
+  for (let i = 0; i < upTo; i++) {
+    const g = games[i], A = t.get(g.a.id), B = t.get(g.b.id);
+    A.played++; B.played++;
+    A.gf += g.score.a; A.ga += g.score.b; B.gf += g.score.b; B.ga += g.score.a;
+    if (!g.winner) { A.d++; B.d++; A.pts++; B.pts++; }
+    else if (g.winner.id === g.a.id) { A.w++; B.l++; A.pts += 3; }
+    else { B.w++; A.l++; B.pts += 3; }
   }
+  for (const s of t.values()) s.gd = s.gf - s.ga;
+  return [...t.values()].sort((x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.name.localeCompare(y.name));
+}
+function renderStandings(bump = []) {
+  const tb = $("standings");
+  const prev = new Map();
+  for (const tr of tb.children) prev.set(tr.dataset.id, tr.getBoundingClientRect().top);
+  const rows = computeStandings(played);
+  tb.innerHTML = rows.map((s, i) => `
+    <tr class="p${i + 1}${bump.includes(s.id) ? " bump" : ""}" data-id="${esc(s.id)}">
+      <td class="l"><span class="rankdot">${i + 1}</span> ${esc(cap(s.name))}</td>
+      <td>${s.played}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td><td>${s.gd > 0 ? "+" : ""}${s.gd}</td><td class="pts">${s.pts}</td>
+    </tr>`).join("");
+  for (const tr of tb.children) { // FLIP: animate rows from their old position
+    const old = prev.get(tr.dataset.id);
+    if (old == null) continue;
+    const delta = old - tr.getBoundingClientRect().top;
+    if (delta) { tr.style.transform = `translateY(${delta}px)`; tr.style.transition = "none"; requestAnimationFrame(() => { tr.style.transition = "transform .5s cubic-bezier(.2,.8,.2,1)"; tr.style.transform = ""; }); }
+  }
+  $("progFill").style.width = `${Math.round((played / games.length) * 100)}%`;
 }
 
-function matchCard(m) {
-  if (m.bye) {
-    const w = m.winner;
-    return `<div class="match bye"><div class="slot win"><span>${esc(cap(w.name))}</span><b></b></div><div class="slot"><span>bye</span><b></b></div></div>`;
-  }
-  const aw = m.winner && m.a && m.winner.id === m.a.id;
-  const bw = m.winner && m.b && m.winner.id === m.b.id;
-  return `<div class="match" data-a="${esc(m.a.id)}" data-b="${esc(m.b.id)}" data-seed="${m.seed}" data-label="${esc(cap(m.a.name))} vs ${esc(cap(m.b.name))}" title="click to watch">
-    <div class="slot ${aw ? "win" : ""}"><span>${esc(cap(m.a.name))}</span><b>${m.score ? m.score.a : ""}</b></div>
-    <div class="slot ${bw ? "win" : ""}"><span>${esc(cap(m.b.name))}</span><b>${m.score ? m.score.b : ""}</b></div>
-  </div>`;
+// ── fixture (the on-screen game) ────────────────────────────────────────────────
+function renderFixture(g, pos, revealed) {
+  const aw = revealed && g.winner && g.winner.id === g.a.id;
+  const bw = revealed && g.winner && g.winner.id === g.b.id;
+  $("md").textContent = `Matchday ${g.round + 1}  ·  Game ${pos + 1} of ${games.length}`;
+  const team = (s, side, color, win, lose, score) => `
+    <div class="team ${side} ${win ? "win" : lose ? "lose" : ""}">
+      <div class="tname" style="color:${color}">${esc(cap(s.name))}</div><div class="thandle">@${esc(s.handle)}</div>
+      <div class="tscore ${revealed ? "pop" : ""}">${revealed ? score : "–"}</div>
+    </div>`;
+  $("fixture").innerHTML =
+    team(g.a, "A", "var(--home)", aw, revealed && !aw, g.score.a) +
+    `<div class="vsbox">${revealed ? '<div class="vs">FT</div>' : '<div class="ball"></div><div class="vs">vs</div>'}</div>` +
+    team(g.b, "B", "var(--away)", bw, revealed && !bw, g.score.b);
+  $("fxresult").innerHTML = revealed ? (g.winner ? `<span class="winchip">✓ ${esc(cap(g.winner.name))} wins</span>` : "honours even - a draw") : "";
+  if (revealed) {
+    $("fxwatch").innerHTML = `<a>▶ watch this match</a>`;
+    $("fxwatch").querySelector("a").onclick = () => watch(g.a.id, g.b.id, g.seed, `${cap(g.a.name)} vs ${cap(g.b.name)}`);
+  } else $("fxwatch").innerHTML = "";
 }
 
+// ── cinematic playback ──────────────────────────────────────────────────────────
+function startCinematic() {
+  indexRefs();
+  $("leagueCard").style.display = "";
+  $("podiumCard").style.display = "none";
+  played = 0; done = false; playing = true;
+  $("ppBtn").disabled = false; $("ppBtn").textContent = "⏸";
+  renderStandings();
+  step();
+  $("leagueCard").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function step() {
+  clearTimeout(t1); clearTimeout(t2);
+  if (played >= games.length) return finalize(true);
+  const g = games[played];
+  renderFixture(g, played, false);
+  t1 = setTimeout(() => {
+    renderFixture(g, played, true);
+    played++;
+    renderStandings([g.a.id, g.b.id]);
+    t2 = setTimeout(() => { if (playing) step(); }, 1050 / speed);
+  }, 800 / speed);
+}
+function setPlaying(p) {
+  playing = p;
+  $("ppBtn").textContent = p ? "⏸" : "▶";
+  if (p) step(); else { clearTimeout(t1); clearTimeout(t2); }
+}
+$("ppBtn").addEventListener("click", () => { if (done) startCinematic(); else setPlaying(!playing); });
+$("skipBtn").addEventListener("click", () => { clearTimeout(t1); clearTimeout(t2); playing = false; played = games.length; renderStandings(); finalize(true); });
+$("spd").addEventListener("change", () => (speed = Number($("spd").value)));
+
+// ── full time: standings + podium + all results ─────────────────────────────────
+function finalize(cinematic) {
+  indexRefs();
+  played = games.length;
+  done = true; playing = false;
+  $("leagueCard").style.display = "";
+  $("ppBtn").textContent = "▶"; $("ppBtn").title = "Replay the night";
+  $("md").textContent = "🏁 Full time";
+  renderStandings();
+
+  const st = result.standings;
+  $("podiumHead").textContent = `🏆 ${cap(st[0].name)} wins the league!`;
+  const order = [st[1], st[0], st[2]].filter(Boolean); // 2nd, 1st, 3rd visual order
+  $("podium").innerHTML = order.map((s) => {
+    const place = st.indexOf(s) + 1, medal = ["🥇", "🥈", "🥉"][place - 1];
+    return `<div class="pcol p${place}"><div class="medal">${medal}</div><div class="pname">${esc(cap(s.name))}</div>
+      <div class="pcard"><div class="ppts">${s.pts} pts</div><div class="ppts">${s.w}-${s.d}-${s.l}</div></div></div>`;
+  }).join("");
+  $("allresults").innerHTML = games.map((g) => `
+    <li data-a="${esc(g.a.id)}" data-b="${esc(g.b.id)}" data-seed="${g.seed}" data-label="${esc(cap(g.a.name))} vs ${esc(cap(g.b.name))}">
+      <span>${esc(cap(g.a.name))} <b>${g.score.a}–${g.score.b}</b> ${esc(cap(g.b.name))}</span><span class="meta">MD${g.round + 1}</span></li>`).join("");
+  for (const li of $("allresults").children) li.onclick = () => watch(li.dataset.a, li.dataset.b, Number(li.dataset.seed), li.dataset.label);
+  $("podiumCard").style.display = "";
+  if (cinematic) $("podiumCard").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+// ── watch a single match's real replay ──────────────────────────────────────────
 async function watch(a, b, seed, label) {
   $("watchCard").style.display = "";
   $("watchTitle").textContent = `▶ ${label}  (running…)`;
@@ -98,7 +200,6 @@ async function watch(a, b, seed, label) {
     $("watchTitle").textContent = "couldn't load the match";
   }
 }
-
 $("pp").addEventListener("click", () => player?.toggle());
 $("scrub").addEventListener("input", () => player?.seek(Number($("scrub").value)));
 $("joincopy").addEventListener("click", async () => {

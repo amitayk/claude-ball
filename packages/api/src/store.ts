@@ -28,22 +28,41 @@ export interface BotRecord {
 /** Public view of a bot (no source, no secret). */
 export type PublicBot = Omit<BotRecord, "source" | "secret">;
 
-/** A single match in a playoff bracket. Bots are referenced by store id so the
- *  match can be replayed on demand (deterministic) — we never store replays. */
-export interface BracketMatch {
+/** A reference to a bot inside a result (by store id, so matches replay on demand). */
+export interface BotRef {
+  id: string;
+  name: string;
+  handle: string;
+}
+/** One league fixture, in play order. `winner` is null for a draw. */
+export interface LeagueGame {
   round: number;
-  a?: { id: string; name: string; handle: string };
-  b?: { id: string; name: string; handle: string };
+  a: BotRef;
+  b: BotRef;
   seed: number;
-  score?: { a: number; b: number };
-  winner?: { id: string; name: string; handle: string };
-  bye?: boolean;
-  note?: string;
+  score: { a: number; b: number };
+  winner: BotRef | null;
+}
+/** A row in the final league table (3 pts a win, 1 a draw). */
+export interface Standing {
+  id: string;
+  name: string;
+  handle: string;
+  played: number;
+  w: number;
+  d: number;
+  l: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  pts: number;
 }
 export interface TournamentResult {
   ranAt: number;
-  champion: { id: string; name: string; handle: string };
-  rounds: BracketMatch[][];
+  format: "league";
+  champion: BotRef;
+  games: LeagueGame[];
+  standings: Standing[];
 }
 export interface Tournament {
   slug: string;

@@ -7,7 +7,7 @@ import type { IncomingMessage } from "node:http";
 import { placeBrainSource } from "@claude-ball/ladder";
 import { runSandboxedMatch, introspectBrain } from "@claude-ball/arena";
 import { JsonStore } from "./store.js";
-import type { BotRecord, BracketMatch, TournamentResult } from "./store.js";
+import type { BotRecord, TournamentResult } from "./store.js";
 import { allow, WorkQueue } from "./limits.js";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -70,56 +70,68 @@ function json(res: ServerResponse, code: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-// ── playoff bracket (single elimination) ─────────────────────────────────────
+// ── round-robin league ───────────────────────────────────────────────────────
 const ref = (b: BotRecord) => ({ id: b.id, name: b.name, handle: b.handle });
 
-/** Play one knockout tie: first decisive game across a few seeds wins; an
- *  all-draw or a broken brain is resolved by seed (Elo). */
-async function playMatch(a: BotRecord, b: BotRecord) {
-  for (const seed of [1, 2, 3]) {
-    const r = await heavy.run(() => runSandboxedMatch(a.source, b.source, { seed }));
-    if (!r.ok || !r.result) {
-      if (r.fault?.side === "home") return { score: { a: 0, b: 1 }, winner: b, seed, note: "home brain failed" };
-      if (r.fault?.side === "away") return { score: { a: 1, b: 0 }, winner: a, seed, note: "away brain failed" };
-      continue; // timeout/crash with no side — try the next seed
+/** Round-robin fixtures via the circle method: rounds (matchdays) where each
+ *  team plays once. An odd count gets a rotating bye (dropped from the schedule). */
+function schedule(entrants: BotRecord[]): [BotRecord, BotRecord][][] {
+  const arr: (BotRecord | null)[] = [...entrants];
+  if (arr.length % 2) arr.push(null);
+  const n = arr.length;
+  let rot = arr.slice(1);
+  const rounds: [BotRecord, BotRecord][][] = [];
+  for (let r = 0; r < n - 1; r++) {
+    const line = [arr[0], ...rot];
+    const day: [BotRecord, BotRecord][] = [];
+    for (let i = 0; i < n / 2; i++) {
+      const a = line[i], b = line[n - 1 - i];
+      if (a && b) day.push([a, b]);
     }
-    const s = r.result.score;
-    if (s.home !== s.away) return { score: { a: s.home, b: s.away }, winner: s.home > s.away ? a : b, seed };
+    rounds.push(day);
+    rot = [rot[rot.length - 1]!, ...rot.slice(0, -1)];
   }
-  return { score: { a: 0, b: 0 }, winner: a.elo >= b.elo ? a : b, seed: 1, note: "all draws - higher seed advances" };
+  return rounds;
 }
 
-/** Seed by Elo, pair high-vs-low, pad with byes, play down to a champion. */
-async function runBracket(entrants: BotRecord[]): Promise<TournamentResult> {
-  const seeds = [...entrants].sort((x, y) => y.elo - x.elo);
-  let size = 1;
-  while (size < seeds.length) size *= 2;
-  const slots: (BotRecord | null)[] = [...seeds];
-  while (slots.length < size) slots.push(null);
-  let current: [BotRecord | null, BotRecord | null][] = [];
-  for (let i = 0; i < size / 2; i++) current.push([slots[i]!, slots[size - 1 - i]!]);
-
-  const rounds: BracketMatch[][] = [];
-  let roundNo = 0;
-  let advancers: BotRecord[] = [];
-  while (true) {
-    const matches: BracketMatch[] = [];
-    advancers = [];
-    for (const [a, b] of current) {
-      if (a && !b) { matches.push({ round: roundNo, a: ref(a), seed: 1, bye: true, winner: ref(a) }); advancers.push(a); continue; }
-      if (!a && b) { matches.push({ round: roundNo, b: ref(b), seed: 1, bye: true, winner: ref(b) }); advancers.push(b); continue; }
-      if (!a || !b) continue;
-      const m = await playMatch(a, b);
-      matches.push({ round: roundNo, a: ref(a), b: ref(b), seed: m.seed, score: m.score, winner: ref(m.winner), note: m.note });
-      advancers.push(m.winner);
-    }
-    rounds.push(matches);
-    if (advancers.length <= 1) break;
-    current = [];
-    for (let i = 0; i < advancers.length; i += 2) current.push([advancers[i]!, advancers[i + 1] ?? null]);
-    roundNo++;
+/** One league game (deterministic seed 1). A broken brain forfeits; a level
+ *  score is a genuine draw (worth a point each). */
+async function playGame(a: BotRecord, b: BotRecord): Promise<{ score: { a: number; b: number }; winner: BotRecord | null }> {
+  const r = await heavy.run(() => runSandboxedMatch(a.source, b.source, { seed: 1 }));
+  if (!r.ok || !r.result) {
+    if (r.fault?.side === "home") return { score: { a: 0, b: 1 }, winner: b };
+    if (r.fault?.side === "away") return { score: { a: 1, b: 0 }, winner: a };
+    return { score: { a: 0, b: 0 }, winner: null };
   }
-  return { ranAt: Date.now(), champion: ref(advancers[0]!), rounds };
+  const s = r.result.score;
+  return { score: { a: s.home, b: s.away }, winner: s.home > s.away ? a : s.away > s.home ? b : null };
+}
+
+/** Everyone plays everyone once; tally a table (3-1-0); rank by pts, then GD, GF. */
+async function runLeague(entrants: BotRecord[]): Promise<TournamentResult> {
+  const table = new Map(
+    entrants.map((e) => [e.id, { ...ref(e), played: 0, w: 0, d: 0, l: 0, gf: 0, ga: 0, gd: 0, pts: 0 }]),
+  );
+  const games: TournamentResult["games"] = [];
+  const rounds = schedule(entrants);
+  for (let roundNo = 0; roundNo < rounds.length; roundNo++) {
+    for (const [a, b] of rounds[roundNo]!) {
+      const g = await playGame(a, b);
+      games.push({ round: roundNo, a: ref(a), b: ref(b), seed: 1, score: g.score, winner: g.winner ? ref(g.winner) : null });
+      const sa = table.get(a.id)!, sb = table.get(b.id)!;
+      sa.played++; sb.played++;
+      sa.gf += g.score.a; sa.ga += g.score.b; sb.gf += g.score.b; sb.ga += g.score.a;
+      if (!g.winner) { sa.d++; sb.d++; sa.pts++; sb.pts++; }
+      else if (g.winner.id === a.id) { sa.w++; sb.l++; sa.pts += 3; }
+      else { sb.w++; sa.l++; sb.pts += 3; }
+    }
+  }
+  for (const s of table.values()) s.gd = s.gf - s.ga;
+  const standings = [...table.values()].sort(
+    (x, y) => y.pts - x.pts || y.gd - x.gd || y.gf - x.gf || x.name.localeCompare(y.name),
+  );
+  const top = standings[0]!;
+  return { ranAt: Date.now(), format: "league", champion: { id: top.id, name: top.name, handle: top.handle }, games, standings };
 }
 
 const server = createServer((req, res) => {
@@ -271,10 +283,11 @@ const server = createServer((req, res) => {
         if (!t) return json(res, 404, { error: "unknown tournament" });
         if (!allow(`trun:${clientIp(req)}`, 20, 600_000)) return json(res, 429, { error: "slow down - too many runs" });
         let entrants = store.tournamentBots(t.slug);
-        if (entrants.length < 2) return json(res, 400, { error: "need at least 2 bots before a playoff can run" });
-        if (entrants.length > 32) entrants = [...entrants].sort((a, b) => b.elo - a.elo).slice(0, 32);
+        if (entrants.length < 2) return json(res, 400, { error: "need at least 2 bots before the league can run" });
+        // Round-robin is O(n²) sandboxed games — cap the field so a run stays bounded.
+        if (entrants.length > 12) entrants = [...entrants].sort((a, b) => b.elo - a.elo).slice(0, 12);
         if (heavy.full) return json(res, 503, { error: "arena busy - try again in a moment" });
-        const result = await runBracket(entrants);
+        const result = await runLeague(entrants);
         store.saveTournamentResult(t.slug, result);
         return json(res, 200, { tournament: store.getTournament(t.slug) });
       } catch (err) {
