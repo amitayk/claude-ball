@@ -43,9 +43,18 @@ function loadBrain(bundle: string) {
 
 try {
   const home = loadBrain(homeBundle);
-  const away = loadBrain(awayBundle);
-  const result = runMatch(home, away, opts as Parameters<typeof runMatch>[2]);
-  parentPort!.postMessage({ ok: true, result });
+  // Introspection: just load the brain and report its name + knob spec (no match).
+  if ((opts as { introspect?: boolean }).introspect) {
+    const h = home as { name?: unknown; params?: unknown };
+    parentPort!.postMessage({
+      ok: true,
+      brain: { name: typeof h.name === "string" ? h.name : null, params: h.params ?? null },
+    });
+  } else {
+    const away = loadBrain(awayBundle);
+    const result = runMatch(home, away, opts as Parameters<typeof runMatch>[2]);
+    parentPort!.postMessage({ ok: true, result });
+  }
 } catch (err) {
   parentPort!.postMessage({ ok: false, error: err instanceof Error ? err.message : String(err) });
 }

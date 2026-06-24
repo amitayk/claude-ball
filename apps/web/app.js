@@ -171,8 +171,12 @@ function fmtVal(v, step) {
   const dec = (String(step).split(".")[1] || "").length;
   return v.toFixed(Math.min(dec || 2, 4));
 }
+// Knob spec for a bot: house bots from the in-browser bundle; challenger bots
+// from the leaderboard payload (their source stays server-side, but the spec —
+// label/min/max/step/help — is surfaced so they can be tuned via the server).
+const specFor = (name) => houseBots[name]?.params ?? bots.find((b) => b.name === name)?.params ?? null;
 function overridesFor(side, name) {
-  const spec = houseBots[name]?.params;
+  const spec = specFor(name);
   if (!spec) return undefined;
   const cur = knobVals[side] || {}, out = {};
   for (const k of Object.keys(spec)) {
@@ -181,7 +185,6 @@ function overridesFor(side, name) {
   return Object.keys(out).length ? out : undefined;
 }
 
-const specFor = (name) => houseBots[name]?.params;
 let activeSide = "home"; // which bot's knobs are currently shown
 
 // Seed knobVals for a side from its spec defaults (+ any shared-link overrides).
@@ -208,9 +211,7 @@ function renderActiveList() {
   const listEl = $("knobsList");
   const spec = specFor(name);
   if (!spec || !Object.keys(spec).length) {
-    listEl.innerHTML = houseBots[name]
-      ? `<div class="knobs-empty">No knobs — this bot exposes none.</div>`
-      : `<div class="knobs-empty">Challenger bot — its knobs are private.</div>`;
+    listEl.innerHTML = `<div class="knobs-empty">This bot exposes no knobs.</div>`;
     return;
   }
   const keys = Object.keys(spec);

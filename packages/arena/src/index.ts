@@ -3,6 +3,9 @@ import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import * as esbuild from "esbuild";
 import type { MatchResult, RunOptions } from "@claude-ball/engine";
+import type { ParamsSpec } from "@claude-ball/brain-api";
+
+export type { ParamsSpec } from "@claude-ball/brain-api";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -108,6 +111,86 @@ export async function runSandboxedMatch(
     worker.on("message", (msg: { ok: boolean; result?: MatchResult; error?: string }) => {
       if (msg.ok) finish({ ok: true, result: msg.result });
       else finish({ ok: false, fault: { kind: "crash", message: msg.error ?? "unknown error" } });
+    });
+    worker.on("error", (err) => finish({ ok: false, fault: { kind: "crash", message: String(err) } }));
+  });
+}
+
+/** Keep only well-formed knob specs; clamp counts/lengths so a bot can't store junk. */
+function sanitizeParams(raw: unknown): ParamsSpec | null {
+  if (!raw || typeof raw !== "object") return null;
+  const out: ParamsSpec = {};
+  let n = 0;
+  for (const [key, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (n >= 24) break; // cap the number of knobs we surface
+    if (!v || typeof v !== "object") continue;
+    const s = v as Record<string, unknown>;
+    if (
+      typeof s.default !== "number" || !Number.isFinite(s.default) ||
+      typeof s.min !== "number" || !Number.isFinite(s.min) ||
+      typeof s.max !== "number" || !Number.isFinite(s.max) ||
+      typeof s.step !== "number" || !Number.isFinite(s.step) ||
+      s.min >= s.max
+    ) continue;
+    out[key.slice(0, 40)] = {
+      default: s.default, min: s.min, max: s.max, step: s.step,
+      label: typeof s.label === "string" ? s.label.slice(0, 60) : undefined,
+      help: typeof s.help === "string" ? s.help.slice(0, 200) : "",
+    };
+    n++;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
+export interface BrainInfo {
+  name: string | null;
+  /** Sanitized knob spec, or null if the bot exposes none. */
+  params: ParamsSpec | null;
+}
+
+/**
+ * Load an UNTRUSTED brain in the sandbox and read its declared name + knob spec,
+ * without running a match. Used at submit time so challenger knobs can be tuned
+ * on the leaderboard without ever exposing the bot's source.
+ */
+export async function introspectBrain(
+  source: string,
+  opts: { timeoutMs?: number } = {},
+): Promise<{ ok: boolean; info?: BrainInfo; fault?: { kind: "compile" | "timeout" | "crash"; message: string } }> {
+  const timeoutMs = opts.timeoutMs ?? 3000;
+  let bundle: string;
+  try {
+    bundle = await bundleBrain(source);
+  } catch (err) {
+    return { ok: false, fault: { kind: "compile", message: String(err) } };
+  }
+  const code = await getWorkerCode();
+  return new Promise((resolve) => {
+    const worker = new Worker(code, {
+      eval: true,
+      workerData: { homeBundle: bundle, awayBundle: bundle, opts: { introspect: true } },
+    });
+    let done = false;
+    const finish = (r: { ok: boolean; info?: BrainInfo; fault?: { kind: "compile" | "timeout" | "crash"; message: string } }) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      void worker.terminate();
+      resolve(r);
+    };
+    const timer = setTimeout(
+      () => finish({ ok: false, fault: { kind: "timeout", message: `introspect exceeded ${timeoutMs}ms` } }),
+      timeoutMs,
+    );
+    worker.on("message", (msg: { ok: boolean; brain?: { name: unknown; params: unknown }; error?: string }) => {
+      if (msg.ok) {
+        finish({
+          ok: true,
+          info: { name: typeof msg.brain?.name === "string" ? msg.brain.name : null, params: sanitizeParams(msg.brain?.params) },
+        });
+      } else {
+        finish({ ok: false, fault: { kind: "crash", message: msg.error ?? "unknown error" } });
+      }
     });
     worker.on("error", (err) => finish({ ok: false, fault: { kind: "crash", message: String(err) } }));
   });

@@ -31,6 +31,12 @@ co-strategist.
   work.
 - Expose a value the coach points at as a tunable `param` (so they can turn it
   in the control panel) — but the coach chooses which values and the ranges.
+- **Prefer params over hardcoded numbers.** Any meaningful magic number the
+  brain uses (distances, thresholds, time windows, fractions) should be a `param`
+  with a clear `help`. Once submitted, every declared knob becomes a live slider
+  on the public site, so **anyone can coach this bot's matches** — more (well-
+  described) knobs = a more interesting, tunable bot. Still: the coach picks
+  which values become knobs and their ranges; you only wire them up.
 - Make code cleaner/faster **without changing behavior**.
 
 ### You MUST NOT:
@@ -180,6 +186,13 @@ to …") clause in plain gameplay terms. Examples:
 The help shows under the slider. Resolved values arrive as `decide`'s second
 argument. Defaults live in code; the coach's saved values live in
 `src/brain.params.json` (committed).
+
+**Knobs are public.** On submit, the bot's `params` spec (labels, ranges, help —
+never the source) is read in the sandbox and published, so visitors can tune this
+bot live on the leaderboard. Write `help` for that audience: concise, plain
+gameplay terms, always with the "Higher = …" direction. Keep the set focused
+(roughly 4–10 knobs that actually change how it plays) rather than exposing every
+constant.
 
 ## Correctness rules (mechanical — always apply)
 

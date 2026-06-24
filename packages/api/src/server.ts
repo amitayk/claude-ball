@@ -5,7 +5,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { IncomingMessage } from "node:http";
 import { placeBrainSource } from "@claude-ball/ladder";
-import { runSandboxedMatch } from "@claude-ball/arena";
+import { runSandboxedMatch, introspectBrain } from "@claude-ball/arena";
 import { JsonStore } from "./store.js";
 import type { BotRecord, BracketMatch, TournamentResult } from "./store.js";
 import { allow, WorkQueue } from "./limits.js";
@@ -207,7 +207,11 @@ const server = createServer((req, res) => {
         if (heavy.full) return json(res, 503, { error: "arena busy - try again in a moment" });
         const placement = await heavy.run(() => placeBrainSource(source, { seeds: PLACEMENT_SEEDS }));
         if (!placement.ok) return json(res, 400, { error: placement.error });
-        const bot = store.upsertUserBot({ handle, name, elo: placement.rating!, source, secret, record: placement.record, tournament });
+        // Read the bot's declared knobs so they can be tuned live on the site.
+        // Non-fatal: a bot that declares none (or fails introspection) just has no knobs.
+        const introspect = await heavy.run(() => introspectBrain(source));
+        const params = introspect.ok ? introspect.info?.params ?? undefined : undefined;
+        const bot = store.upsertUserBot({ handle, name, elo: placement.rating!, source, secret, record: placement.record, tournament, params });
         return json(res, 200, { bot: { ...bot, source: undefined, secret: undefined }, placement, key: issuedKey });
       } catch (err) {
         return json(res, 400, { error: err instanceof Error ? err.message : String(err) });

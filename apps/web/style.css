@@ -178,7 +178,7 @@ button.primary:hover { filter: brightness(1.06); }
 .knobs-reset:hover { color: var(--text); border-color: #475049; }
 .knobs-reset[hidden] { display: none; }
 /* side switch: which bot you're coaching */
-.sidetabs { display: flex; width: 100%; margin-bottom: 14px; }
+.sidetabs { display: flex; width: 100%; margin-bottom: 20px; }
 .sidetabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 8px; font-size: 12.5px; font-weight: 600; }
 .sidetabs button:disabled { opacity: 0.45; cursor: not-allowed; }
 .sidetabs .seldot { width: 9px; height: 9px; }

@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { libraryBots } from "@claude-ball/ladder";
+import type { ParamsSpec } from "@claude-ball/arena";
 
 export interface BotRecord {
   id: string;
@@ -11,6 +12,9 @@ export interface BotRecord {
   elo: number;
   record?: { wins: number; draws: number; losses: number };
   blurb?: string;
+  /** Declared knob spec (label/min/max/step/help) — non-sensitive, surfaced so the
+   *  bot's knobs can be tuned live on the site. Source itself is never exposed. */
+  params?: ParamsSpec;
   /** Brain source — kept server-side so any matchup can be replayed; never listed. */
   source: string;
   /** sha256 of the owner's claim key (user bots only); proves ownership on resubmit. */
@@ -141,6 +145,7 @@ export class JsonStore {
     secret: string;
     record?: BotRecord["record"];
     tournament?: string;
+    params?: ParamsSpec;
   }): BotRecord {
     const id = `user-${input.handle}`;
     const existing = this.bots.find((b) => b.id === id);
@@ -151,6 +156,7 @@ export class JsonStore {
       kind: "user",
       elo: input.elo,
       record: input.record,
+      params: input.params,
       source: input.source,
       secret: input.secret,
       // keep an existing tournament tag if this resubmit didn't specify one
