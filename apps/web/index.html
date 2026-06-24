@@ -124,23 +124,17 @@
           </div>
         </div>
 
-        <!-- Knobs tab: tune both bots; every change re-runs the match -->
+        <!-- Knobs tab: coach one side at a time; switch sides with the toggle -->
         <div class="tabpanel knobs" data-panel="knobs" hidden>
-          <div class="knobs-restart">↻ Every change <b>re-runs the match from kickoff.</b></div>
           <div class="knobs-bar">
-            <span class="muted small knobs-note" id="knobsNote"></span>
+            <span class="knobs-coaching">you are coaching <b id="coachingName" class="coaching-name">Blitz</b></span>
             <button type="button" id="knobsReset" class="knobs-reset" hidden>Reset</button>
           </div>
-          <div class="knobs-cols">
-            <div class="knobs-col" data-side="home">
-              <div class="knobs-col-head"><span class="seldot home"></span><b id="knobsHomeName">Home</b></div>
-              <div class="knobs-list" id="knobsHome"></div>
-            </div>
-            <div class="knobs-col" data-side="away">
-              <div class="knobs-col-head"><span class="seldot away"></span><b id="knobsAwayName">Away</b></div>
-              <div class="knobs-list" id="knobsAway"></div>
-            </div>
+          <div class="ostabs sidetabs" id="sideTabs">
+            <button type="button" data-side="home" id="sideTabHome"><span class="seldot home"></span><span id="sideTabHomeName">Home</span></button>
+            <button type="button" data-side="away" id="sideTabAway"><span class="seldot away"></span><span id="sideTabAwayName">Away</span></button>
           </div>
+          <div class="knobs-list" id="knobsList"></div>
         </div>
       </section>
     </section>

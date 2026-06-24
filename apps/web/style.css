@@ -168,25 +168,21 @@ button.primary:hover { filter: brightness(1.06); }
 .tabpanel[hidden] { display: none; }
 
 /* ---------- live knob tuning ---------- */
-.knobs-restart {
-  display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--accent);
-  background: rgba(255,122,60,0.09); border: 1px solid rgba(255,122,60,0.28); border-radius: 9px;
-  padding: 8px 11px; margin-bottom: 10px;
-}
-.knobs-restart b { color: var(--text); font-weight: 700; }
-.knobs-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; min-height: 24px; }
-.knobs-note { flex: 1; }
+.knobs-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; min-height: 26px; }
+.knobs-coaching { flex: 1; font-size: 13.5px; color: var(--muted); }
+.coaching-name { font-weight: 800; }
 .knobs-reset {
   background: #21271f; color: var(--muted); border: 1px solid var(--line);
   border-radius: 7px; padding: 4px 10px; font-size: 12px; cursor: pointer; flex: none;
 }
 .knobs-reset:hover { color: var(--text); border-color: #475049; }
 .knobs-reset[hidden] { display: none; }
-.knobs-cols { display: flex; flex-direction: column; gap: 16px; margin-top: 10px; max-height: 58vh; overflow-y: auto; padding-right: 4px; }
-.knobs-col + .knobs-col { border-top: 1px solid var(--line); padding-top: 14px; }
-.knobs-col-head { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; font-size: 13px; }
-.knobs-col-head .seldot { width: 9px; height: 9px; }
-.knobs-list { display: flex; flex-direction: column; gap: 11px; }
+/* side switch: which bot you're coaching */
+.sidetabs { display: flex; width: 100%; margin-bottom: 14px; }
+.sidetabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 8px; font-size: 12.5px; font-weight: 600; }
+.sidetabs button:disabled { opacity: 0.45; cursor: not-allowed; }
+.sidetabs .seldot { width: 9px; height: 9px; }
+.knobs-list { display: flex; flex-direction: column; gap: 14px; max-height: 56vh; overflow-y: auto; padding-right: 4px; }
 .knobs-empty { color: var(--muted); font-size: 12.5px; font-style: italic; }
 .knob { font-size: 12px; }
 .knob-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }

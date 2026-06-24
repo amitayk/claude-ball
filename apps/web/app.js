@@ -181,32 +181,47 @@ function overridesFor(side, name) {
   return Object.keys(out).length ? out : undefined;
 }
 
-function buildSide(side, name) {
-  const listEl = $(side === "home" ? "knobsHome" : "knobsAway");
-  $(side === "home" ? "knobsHomeName" : "knobsAwayName").textContent = cap(name);
-  const spec = houseBots[name]?.params;
+const specFor = (name) => houseBots[name]?.params;
+let activeSide = "home"; // which bot's knobs are currently shown
+
+// Seed knobVals for a side from its spec defaults (+ any shared-link overrides).
+// Returns the knob count (0 if the bot exposes none).
+function initSide(side, name) {
+  const spec = specFor(name);
   knobVals[side] = {};
+  if (!spec || !Object.keys(spec).length) return 0;
+  const keys = Object.keys(spec);
+  for (const k of keys) knobVals[side][k] = spec[k].default;
+  const pv = pendingUrlKnobs?.[side]; // shared-link values, applied once
+  if (pv) for (const k of keys) if (typeof pv[k] === "number") knobVals[side][k] = clampSpec(pv[k], spec[k]);
+  return keys.length;
+}
+
+// Render the sliders for whichever side is currently selected.
+function renderActiveList() {
+  const side = activeSide;
+  const name = side === "home" ? $("homeSel").value : $("awaySel").value;
+  $("coachingName").textContent = cap(name);
+  $("coachingName").style.color = side === "home" ? "var(--home)" : "var(--away)";
+  $("sideTabHome").classList.toggle("active", side === "home");
+  $("sideTabAway").classList.toggle("active", side === "away");
+  const listEl = $("knobsList");
+  const spec = specFor(name);
   if (!spec || !Object.keys(spec).length) {
     listEl.innerHTML = houseBots[name]
       ? `<div class="knobs-empty">No knobs — this bot exposes none.</div>`
       : `<div class="knobs-empty">Challenger bot — its knobs are private.</div>`;
-    return 0;
+    return;
   }
   const keys = Object.keys(spec);
-  for (const k of keys) knobVals[side][k] = spec[k].default;
-  // apply shared-link overrides on first render
-  const pv = pendingUrlKnobs?.[side];
-  if (pv) for (const k of keys) if (typeof pv[k] === "number") knobVals[side][k] = clampSpec(pv[k], spec[k]);
-
   listEl.innerHTML = keys.map((k) => {
     const s = spec[k], cur = knobVals[side][k], changed = cur !== s.default;
-    return `<div class="knob${changed ? " changed" : ""}" data-side="${side}" data-key="${esc(k)}" title="${esc(s.help)}">
+    return `<div class="knob${changed ? " changed" : ""}" data-key="${esc(k)}" title="${esc(s.help)}">
       <div class="knob-top"><span class="knob-label">${esc(s.label || k)}</span><span class="knob-val">${fmtVal(cur, s.step)}</span></div>
       <input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${cur}" aria-label="${esc(s.label || k)}">
       <div class="knob-help">${esc(s.help)}</div>
     </div>`;
   }).join("");
-
   for (const row of listEl.querySelectorAll(".knob")) {
     const inp = row.querySelector("input"), key = row.dataset.key;
     inp.addEventListener("input", () => {
@@ -218,24 +233,32 @@ function buildSide(side, name) {
       scheduleResim();
     });
   }
-  return keys.length;
 }
 
 function renderKnobs(home, away) {
   if (!$("knobsTab")) return;
-  const total = buildSide("home", home) + buildSide("away", away);
-  pendingUrlKnobs = null; // shared-link values are a one-time apply
+  const hc = initSide("home", home), ac = initSide("away", away);
+  pendingUrlKnobs = null;
+  const total = hc + ac;
   const hasKnobs = total > 0;
   // The Knobs tab + "Coach live" shortcut only exist when there's something to tune.
   $("knobsTab").hidden = !hasKnobs;
   $("coachBtn").hidden = !hasKnobs;
   $("knobsTabCount").textContent = hasKnobs ? `(${total})` : "";
-  const bothHouse = !!(houseBots[home] && houseBots[away]);
-  $("knobsNote").textContent = bothHouse
-    ? "Runs instantly in your browser."
-    : "Tuning a house bot re-runs on the server (~1–2s).";
+  // side switch labels; disable a side that has no knobs
+  $("sideTabHomeName").textContent = cap(home);
+  $("sideTabAwayName").textContent = cap(away);
+  $("sideTabHome").disabled = hc === 0;
+  $("sideTabAway").disabled = ac === 0;
+  activeSide = hc > 0 ? "home" : ac > 0 ? "away" : "home"; // default to a side worth tuning
+  renderActiveList();
   if (!hasKnobs && currentTab === "knobs") switchTab("board"); // nothing to tune → back to board
   updateResetVisible();
+}
+
+// switch which bot we're coaching
+for (const b of document.querySelectorAll("#sideTabs button")) {
+  b.addEventListener("click", () => { if (b.disabled) return; activeSide = b.dataset.side; renderActiveList(); });
 }
 
 // ---------- sidebar tabs ----------
@@ -276,19 +299,14 @@ function updateResetVisible() {
 }
 
 function resetKnobs() {
+  // reset BOTH sides to defaults (not just the one on screen), then refresh the view
   for (const side of ["home", "away"]) {
     const name = side === "home" ? $("homeSel").value : $("awaySel").value;
-    const spec = houseBots[name]?.params;
+    const spec = specFor(name);
     if (!spec) continue;
-    const listEl = $(side === "home" ? "knobsHome" : "knobsAway");
-    for (const row of listEl.querySelectorAll(".knob")) {
-      const k = row.dataset.key, d = spec[k].default, inp = row.querySelector("input");
-      knobVals[side][k] = d;
-      inp.value = String(d);
-      row.querySelector(".knob-val").textContent = fmtVal(d, Number(inp.step));
-      row.classList.remove("changed");
-    }
+    for (const k of Object.keys(spec)) knobVals[side][k] = spec[k].default;
   }
+  renderActiveList();
   updateResetVisible();
   scheduleResim();
 }
