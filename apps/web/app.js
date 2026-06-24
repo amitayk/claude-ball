@@ -193,7 +193,10 @@ $("fsBtn").addEventListener("click", () => {
 });
 
 // Modals: Play/Compete and How it works (native <dialog>)
-$("playBtn").addEventListener("click", () => $("competeModal").showModal());
+$("playBtn").addEventListener("click", () => {
+  $("competeModal").showModal();
+  window.trackCompeteOpen && window.trackCompeteOpen(); // conversion event for ads
+});
 $("howBtn").addEventListener("click", () => $("howModal").showModal());
 for (const dlg of document.querySelectorAll("dialog.modal")) {
   dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); }); // click backdrop to close

@@ -18,6 +18,25 @@
     <meta name="twitter:image" content="https://claude-ball.fly.dev/og.png" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
+    <!-- Paid-acquisition tracking. Conversion = "opened the Compete modal".
+         Paste your pixel IDs below to go live; empty strings = harmless no-op. -->
+    <script>
+      window.ADS = { meta: "", reddit: "" }; // <- paste Meta Pixel ID / Reddit Pixel ID, then redeploy
+      if (window.ADS.meta) {
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        window.fbq('init', window.ADS.meta); window.fbq('track', 'PageView');
+      }
+      if (window.ADS.reddit) {
+        !function(w,d){if(!w.rdt){var p=w.rdt=function(){p.sendEvent?p.sendEvent.apply(p,arguments):p.callQueue.push(arguments)};p.callQueue=[];var t=d.createElement("script");t.src="https://www.redditstatic.com/ads/pixel.js";t.async=!0;var s=d.getElementsByTagName("script")[0];s.parentNode.insertBefore(t,s)}}(window,document);
+        window.rdt('init', window.ADS.reddit); window.rdt('track', 'PageVisit');
+      }
+      // The single conversion we optimize ads toward: opening the Compete modal.
+      window.trackCompeteOpen = function () {
+        try { window.goatcounter && window.goatcounter.count({ path: 'compete-open', title: 'Opened Compete', event: true }); } catch (e) {}
+        try { window.fbq && window.fbq('track', 'Lead'); } catch (e) {}
+        try { window.rdt && window.rdt('track', 'Lead'); } catch (e) {}
+      };
+    </script>
   </head>
   <body>
     <div class="bg-grid" aria-hidden="true"></div>
