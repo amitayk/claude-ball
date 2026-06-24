@@ -58,13 +58,15 @@ async function refresh() {
     if (firstLoad && bots.length >= 1) {
       firstLoad = false;
       const has = (n) => !!n && bots.some((b) => b.name === n);
+      // Default featured matchup; falls back to the top two bots if either is gone.
+      const DEF_HOME = "quicksilver", DEF_AWAY = "maestro";
       let home, away;
       if (has(initHome)) {
         home = initHome;
-        away = has(initAway) ? initAway : home === "blitz" ? "formation" : "blitz";
+        away = has(initAway) ? initAway : home === DEF_HOME ? DEF_AWAY : DEF_HOME;
       } else {
-        home = has("blitz") ? "blitz" : bots[0].name;
-        away = has("formation") ? "formation" : bots.find((b) => b.name !== home)?.name ?? home;
+        home = has(DEF_HOME) ? DEF_HOME : bots[0].name;
+        away = has(DEF_AWAY) ? DEF_AWAY : bots.find((b) => b.name !== home)?.name ?? home;
       }
       if (!has(away) || away === home) away = bots.find((b) => b.name !== home)?.name ?? home;
       if (initSeed && /^\d+$/.test(initSeed)) $("seedInput").value = initSeed;
