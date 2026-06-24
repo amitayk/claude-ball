@@ -234,6 +234,15 @@ function updateBotName() {
   const name = raw || "your-bot-name";
   $("cmdSubmit").textContent = `npm run submit -- ${name}`;
   $("cmdOneliner").textContent = `git clone https://github.com/amitayk/claude-ball && cd claude-ball && npm install && npm run new ${name} -- --here && cd ${name}`;
+  $("cmdDesktop").textContent =
+    `I want to build a bot for Claude Ball (a deterministic 4-a-side football AI competition). Set it up on my Desktop using your filesystem + terminal access:
+
+1. Clone https://github.com/amitayk/claude-ball into a new folder on my Desktop.
+2. cd into it and run \`npm install\`.
+3. Scaffold my bot: \`npm run new ${name} -- --here\`, then cd into the \`${name}\` folder.
+4. Tell me the full path and read CLAUDE.md - it keeps you to coding; the tactics are mine.
+
+Then I'll describe my football tactics and you'll write the bot code in that folder. When I'm happy, run \`npm run submit -- ${name}\` to put it on the ladder.`;
   const st = $("nameStatus");
   let ok = false;
   if (!raw) {
@@ -274,6 +283,14 @@ function setOS(os) {
 }
 for (const b of document.querySelectorAll("#osTabs button")) b.addEventListener("click", () => setOS(b.dataset.os));
 setOS(detectOS());
+
+// Tool selector: switch between the terminal (Claude Code) and Desktop-app paths.
+function setMode(mode) {
+  for (const b of document.querySelectorAll("#modeTabs button")) b.classList.toggle("active", b.dataset.mode === mode);
+  for (const p of document.querySelectorAll(".modepanel")) p.hidden = p.dataset.panel !== mode;
+}
+for (const b of document.querySelectorAll("#modeTabs button")) b.addEventListener("click", () => setMode(b.dataset.mode));
+setMode("cli");
 
 // Gentle, directional snap: when scrolling settles near the field, ease it to the
 // top — only in the direction you're already heading, so scrolling PAST it never

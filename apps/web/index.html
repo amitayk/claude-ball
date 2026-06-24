@@ -115,29 +115,55 @@
       <div class="modal-inner howto">
         <div class="modal-head"><h2>Compete</h2><button class="modal-x" type="button" data-close aria-label="Close">✕</button></div>
         <p class="muted small">Build a bot with your AI agent, then put it on the ladder.</p>
-        <ol class="steps">
-          <li><b>Name your bot.</b>
-            <div class="namerow"><input id="botName" placeholder="your-bot-name" autocomplete="off" spellcheck="false" /><span id="nameStatus" class="namestatus"></span></div>
-          </li>
-          <li><b>Set it up.</b> One command clones, installs, and scaffolds your bot.
-            <div class="cmdrow"><code class="cmd" id="cmdOneliner">git clone https://github.com/amitayk/claude-ball &amp;&amp; cd claude-ball &amp;&amp; npm install &amp;&amp; npm run new your-bot-name -- --here &amp;&amp; cd your-bot-name</code><button class="copy" data-name>Copy</button></div>
-          </li>
-          <li><b>Build it with your AI.</b> Run your coding agent in that folder and describe your tactics. <code>CLAUDE.md</code> keeps it to coding - the thinking is yours.
-            <div class="cmdrow"><code class="cmd">claude</code><button class="copy">Copy</button></div>
-          </li>
-          <li><b>Submit.</b> Place it on the ladder and watch it play here.
-            <div class="cmdrow"><code class="cmd" id="cmdSubmit">npm run submit -- your-bot-name</code><button class="copy" data-name>Copy</button></div>
-          </li>
-        </ol>
-        <details class="install">
-          <summary>No git or Node yet?</summary>
-          <div class="ostabs" id="osTabs">
-            <button data-os="mac">macOS</button>
-            <button data-os="windows">Windows</button>
-            <button data-os="linux">Linux</button>
+
+        <div class="namestep">
+          <b>1. Name your bot.</b>
+          <div class="namerow"><input id="botName" placeholder="your-bot-name" autocomplete="off" spellcheck="false" /><span id="nameStatus" class="namestatus"></span></div>
+        </div>
+
+        <div class="modestep">
+          <b>2. Pick your tool.</b>
+          <div class="ostabs modetabs" id="modeTabs">
+            <button data-mode="cli" class="active">Claude Code (terminal)</button>
+            <button data-mode="desktop">Claude Desktop app</button>
           </div>
-          <div class="cmdrow"><code class="cmd" id="cmdInstall">brew install git node</code><button class="copy">Copy</button></div>
-        </details>
+        </div>
+
+        <!-- Terminal / Claude Code path -->
+        <div class="modepanel" data-panel="cli">
+          <ol class="steps" start="3">
+            <li><b>Set it up.</b> One command clones, installs, and scaffolds your bot.
+              <div class="cmdrow"><code class="cmd" id="cmdOneliner">git clone https://github.com/amitayk/claude-ball &amp;&amp; cd claude-ball &amp;&amp; npm install &amp;&amp; npm run new your-bot-name -- --here &amp;&amp; cd your-bot-name</code><button class="copy" data-name>Copy</button></div>
+            </li>
+            <li><b>Build it with your AI.</b> Run your coding agent in that folder and describe your tactics. <code>CLAUDE.md</code> keeps it to coding - the thinking is yours.
+              <div class="cmdrow"><code class="cmd">claude</code><button class="copy">Copy</button></div>
+            </li>
+            <li><b>Submit.</b> Place it on the ladder and watch it play here.
+              <div class="cmdrow"><code class="cmd" id="cmdSubmit">npm run submit -- your-bot-name</code><button class="copy" data-name>Copy</button></div>
+            </li>
+          </ol>
+          <details class="install">
+            <summary>No git or Node yet?</summary>
+            <div class="ostabs" id="osTabs">
+              <button data-os="mac">macOS</button>
+              <button data-os="windows">Windows</button>
+              <button data-os="linux">Linux</button>
+            </div>
+            <div class="cmdrow"><code class="cmd" id="cmdInstall">brew install git node</code><button class="copy">Copy</button></div>
+          </details>
+        </div>
+
+        <!-- Desktop app path: no terminal needed - Claude does the setup -->
+        <div class="modepanel" data-panel="desktop" hidden>
+          <ol class="steps" start="3">
+            <li><b>Open Claude Desktop and paste this prompt.</b> Claude clones the project, sets up your bot, then builds it with you - no terminal needed.
+              <div class="cmdrow"><code class="cmd promptblock" id="cmdDesktop"></code><button class="copy" data-name>Copy</button></div>
+            </li>
+            <li><b>Describe your tactics.</b> Claude writes the code; the thinking is yours. <code>CLAUDE.md</code> keeps it to coding.</li>
+            <li><b>Submit.</b> When you're happy, tell Claude to put your bot on the ladder.</li>
+          </ol>
+          <p class="muted small needtools">Needs <b>filesystem</b> + <b>terminal/bash</b> access enabled in Claude Desktop (Settings → Connectors / Developer) so Claude can run the setup. <a href="https://modelcontextprotocol.io/quickstart/user" target="_blank" rel="noopener">How to enable →</a></p>
+        </div>
       </div>
     </dialog>
 
