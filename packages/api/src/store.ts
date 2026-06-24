@@ -70,20 +70,44 @@ export class JsonStore {
     this.toursFile = file.replace(/\.json$/i, "") + ".tours.json";
     if (existsSync(file)) {
       this.bots = JSON.parse(readFileSync(file, "utf8")) as BotRecord[];
-    } else {
-      this.bots = libraryBots.map((b) => ({
-        id: `lib-${b.name}`,
-        handle: "library",
-        name: b.name,
-        kind: "library" as const,
-        elo: b.elo,
-        blurb: b.blurb,
-        source: b.source,
-        createdAt: 0,
-      }));
-      this.save();
     }
+    // Seed/refresh the library fixtures from the shipped catalog. Runs on every
+    // boot (not just first), so a deploy that adds a new house bot or re-anchors
+    // an existing one's Elo shows up on a ladder store that was seeded earlier.
+    this.syncLibraryBots();
     if (existsSync(this.toursFile)) this.tours = JSON.parse(readFileSync(this.toursFile, "utf8")) as Tournament[];
+  }
+
+  /** Ensure every shipped library bot is present and Elo/blurb-anchored to the
+   *  current catalog. Inserts missing fixtures (new house bots) and re-anchors
+   *  existing ones; never touches user bots. Saves only if something changed. */
+  private syncLibraryBots(): void {
+    let changed = false;
+    for (const b of libraryBots) {
+      const id = `lib-${b.name}`;
+      const existing = this.bots.find((x) => x.id === id);
+      if (existing) {
+        if (existing.elo !== b.elo || existing.blurb !== b.blurb || existing.kind !== "library") {
+          existing.elo = b.elo;
+          existing.blurb = b.blurb;
+          existing.kind = "library";
+          changed = true;
+        }
+      } else {
+        this.bots.push({
+          id,
+          handle: "library",
+          name: b.name,
+          kind: "library",
+          elo: b.elo,
+          blurb: b.blurb,
+          source: b.source,
+          createdAt: 0,
+        });
+        changed = true;
+      }
+    }
+    if (changed) this.save();
   }
 
   private save(): void {
