@@ -2,11 +2,12 @@ import type { Brain, ParamValues, PlayerView, TeamIntent, Vec2, WorldView } from
 import { dist, kickoffBackPass } from "@claude-ball/brain-api";
 
 /**
- * TACTIC ("tiki") — a tiki-taka possession side that gegenpresses, but with a
- * killer instinct: it keeps the ball with short triangle passing, progresses the
- * instant a teammate is genuinely ahead, and finishes from range into the open
- * net whenever the lane is clean (the pool's bots have no real keeper, so an open
- * lane to goal is a goal).
+ * TACTIC ("quicksilver") — a fast, fluid transition side with a tiki-taka
+ * passing core but a quicksilver edge: it keeps the ball with short triangle
+ * passing, but the instant it wins it or a lane opens it breaks vertically and
+ * strikes — gegenpressing to win it back high and finishing from range into the
+ * open net whenever the lane is clean (the pool's bots have no real keeper, so an
+ * open lane to goal is a goal).
  *
  * Shape (by id, lowest..highest):
  *   - KEEPER/ANCHOR (lowest id): sits just off our line and tracks the projected
@@ -26,8 +27,8 @@ import { dist, kickoffBackPass } from "@claude-ball/brain-api";
  *
  * The numbers below are tunable live from the coach control panel (params).
  */
-export const tiki: Brain = {
-  name: "tiki",
+export const quicksilver: Brain = {
+  name: "quicksilver",
   params: {
     passLength: {
       default: 0.34,
@@ -453,4 +454,4 @@ function forwardPocket(view: WorldView, fx: number, goalTop: number, goalBot: nu
   return { x: fx, y: bestY };
 }
 
-export default tiki;
+export default quicksilver;
