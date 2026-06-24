@@ -17,11 +17,13 @@
     "api": "tsx packages/api/src/server.ts",
     "web": "tsx apps/web/serve.ts",
     "arena": "npm run api & npm run web",
-    "new": "node scripts/new-bot.mjs"
+    "new": "node scripts/new-bot.mjs",
+    "build:web-sim": "esbuild apps/web/_sim-src.ts --bundle --format=esm --platform=browser --outfile=apps/web/sim.bundle.js"
   },
   "devDependencies": {
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "@types/node": "^22.9.0"
+    "@types/node": "^22.9.0",
+    "esbuild": "^0.24.0"
   }
 }

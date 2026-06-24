@@ -12,6 +12,9 @@ COPY tsconfig.json ./
 
 RUN npm ci
 
+# Bundle the in-browser match engine + house bots (live knob tuning on the web).
+RUN npm run build:web-sim
+
 ENV PORT=8787
 # JSON store lives on a mounted volume so the ladder survives restarts.
 ENV KR_DATA=/data/arena.json

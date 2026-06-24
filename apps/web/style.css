@@ -119,6 +119,40 @@ button.primary:hover { filter: brightness(1.06); }
 #fsBtn { background: #21271f; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 11px; cursor: pointer; }
 #fsBtn:hover { border-color: #475049; }
 
+/* ---------- live knob tuning ---------- */
+.knobs { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 10px; }
+.knobs[hidden] { display: none; }
+.knobs > summary {
+  display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none;
+  color: var(--text); font-weight: 600; font-size: 13px; user-select: none;
+}
+.knobs > summary::-webkit-details-marker { display: none; }
+.knobs > summary::before { content: "▸"; color: var(--muted); transition: transform .12s; }
+.knobs[open] > summary::before { transform: rotate(90deg); }
+.knobs-title { display: inline-flex; align-items: center; gap: 6px; }
+.knobs-reset {
+  margin-left: auto; background: #21271f; color: var(--muted); border: 1px solid var(--line);
+  border-radius: 7px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+}
+.knobs-reset:hover { color: var(--text); border-color: #475049; }
+.knobs-reset[hidden] { display: none; }
+.knobs-note { margin: 8px 0 2px; }
+.knobs-note[hidden] { display: none; }
+.knobs-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 10px; }
+@media (max-width: 620px) { .knobs-cols { grid-template-columns: 1fr; } }
+.knobs-col-head { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; font-size: 13px; }
+.knobs-col-head .seldot { width: 9px; height: 9px; }
+.knobs-list { display: flex; flex-direction: column; gap: 11px; }
+.knobs-empty { color: var(--muted); font-size: 12.5px; font-style: italic; }
+.knob { font-size: 12px; }
+.knob-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.knob-label { color: var(--text); }
+.knob-val { color: var(--accent); font-variant-numeric: tabular-nums; font-weight: 600; }
+.knob input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; cursor: pointer; }
+.knob.changed .knob-label::after { content: " •"; color: var(--accent); }
+.knob-help { color: var(--muted); font-size: 11px; line-height: 1.35; margin-top: 3px; max-height: 0; overflow: hidden; opacity: 0; transition: max-height .15s, opacity .15s; }
+.knob:hover .knob-help, .knob:focus-within .knob-help { max-height: 80px; opacity: 1; }
+
 /* seed + dice — dice is its own bright control */
 .seedfield { display: inline-flex; align-items: center; gap: 0; border: 1px solid var(--line); border-radius: 9px; background: #11160f; overflow: hidden; }
 .seedlabel { color: var(--muted); font-size: 12.5px; padding: 0 6px 0 10px; }
@@ -187,6 +221,8 @@ button.primary:hover { filter: brightness(1.06); }
 .promptblock { white-space: pre-wrap; word-break: break-word; overflow-x: visible; line-height: 1.5; }
 .cmdrow:has(.promptblock) { align-items: flex-start; }
 .cmdrow:has(.promptblock) .copy { padding: 9px 14px; }
+.kbd { display: inline-block; border: 1px solid var(--line); border-radius: 5px; padding: 1px 7px; font-size: 0.9em; background: rgba(255,255,255,0.05); }
+.appshot { display: block; margin: 10px 0 2px; max-width: 100%; border: 1px solid var(--line); border-radius: 10px; }
 .needtools { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
 .needtools a { color: var(--accent); white-space: nowrap; }
 

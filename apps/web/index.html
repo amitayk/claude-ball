@@ -94,6 +94,26 @@
             <button id="fsBtn" title="Fullscreen (← → step, space play)">⛶</button>
           </div>
         </div>
+
+        <!-- Live knob tuning: house-bot matchups re-simulate instantly in the
+             browser; matchups with a challenger bot re-run on the server. -->
+        <details class="knobs" id="knobs" hidden>
+          <summary>
+            <span class="knobs-title">⚙ Knobs <span id="knobsCount" class="muted small"></span></span>
+            <button type="button" id="knobsReset" class="knobs-reset">Reset</button>
+          </summary>
+          <p class="muted small knobs-note" id="knobsNote"></p>
+          <div class="knobs-cols">
+            <div class="knobs-col" data-side="home">
+              <div class="knobs-col-head"><span class="seldot home"></span><b id="knobsHomeName">Home</b></div>
+              <div class="knobs-list" id="knobsHome"></div>
+            </div>
+            <div class="knobs-col" data-side="away">
+              <div class="knobs-col-head"><span class="seldot away"></span><b id="knobsAwayName">Away</b></div>
+              <div class="knobs-list" id="knobsAway"></div>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section class="board card">
@@ -158,7 +178,10 @@
         <!-- Desktop app path: no terminal needed - Claude does the setup -->
         <div class="modepanel" data-panel="desktop" hidden>
           <ol class="steps" start="3">
-            <li><b>Open Claude Desktop and paste this prompt.</b> Claude clones the project, sets up your bot, then builds it with you - no terminal needed.
+            <li><b>Open Claude Desktop and switch to <span class="kbd">Code</span> mode</b>, then start a <b>New session</b>.
+              <img class="appshot" src="/claude-code-mode.png" alt="Claude Desktop app: pick the Code tab, then New session" width="320" loading="lazy" />
+            </li>
+            <li><b>Paste this prompt.</b> Claude clones the project, sets up your bot, then builds it with you - no terminal needed.
               <div class="cmdrow"><code class="cmd promptblock" id="cmdDesktop"></code><button class="copy" data-name>Copy</button></div>
             </li>
             <li><b>Describe your tactics.</b> Claude writes the code; the thinking is yours. <code>CLAUDE.md</code> keeps it to coding.</li>

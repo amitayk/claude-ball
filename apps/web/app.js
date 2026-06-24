@@ -1,6 +1,12 @@
 import { MatchPlayer } from "./match.js";
 import { BRAND, REPO } from "./brand.js";
 
+// House bots + engine bundled for the browser, so house-vs-house matchups can be
+// re-simulated live when a visitor turns a knob. Loaded lazily and defensively:
+// if the bundle is missing (not built), knob tuning just stays hidden.
+let houseBots = {};
+try { ({ houseBots } = await import("./sim.bundle.js")); } catch { /* no live tuning */ }
+
 // Brand the page from one const.
 document.title = `${BRAND} · the arena`;
 {
@@ -109,6 +115,7 @@ function setMatchup(home, away, run = true) {
   $("homeSel").value = home;
   $("awaySel").value = away;
   renderPicks();
+  renderKnobs(home, away); // fresh knob panels for the new matchup
   if (run) watch();
 }
 
@@ -141,13 +148,161 @@ function renderPicks() {
 function updateUrl(home, away, seed) {
   const p = new URLSearchParams(location.search);
   p.set("home", home); p.set("away", away); p.set("seed", String(seed));
+  // keep shared links reproducible: encode any non-default knob overrides
+  const ho = overridesFor("home", home), ao = overridesFor("away", away);
+  ho ? p.set("homeParams", JSON.stringify(ho)) : p.delete("homeParams");
+  ao ? p.set("awayParams", JSON.stringify(ao)) : p.delete("awayParams");
   history.replaceState(null, "", `${location.pathname}?${p.toString()}`);
 }
+
+// ---------- live knob tuning ----------
+// Each side's current slider values (defaults unless turned). `overridesFor`
+// returns only what differs from default — used for the URL and the server path.
+const knobVals = { home: {}, away: {} };
+// Shared-link knob values to apply on the very first render (consumed once).
+const parseKnobs = (s) => { try { const o = JSON.parse(s); return o && typeof o === "object" ? o : null; } catch { return null; } };
+let pendingUrlKnobs = (initParams.get("homeParams") || initParams.get("awayParams"))
+  ? { home: parseKnobs(initParams.get("homeParams")), away: parseKnobs(initParams.get("awayParams")) }
+  : null;
+
+const clampSpec = (v, s) => Math.max(s.min, Math.min(s.max, v));
+function fmtVal(v, step) {
+  if (!isFinite(step) || step >= 1) return String(Math.round(v));
+  const dec = (String(step).split(".")[1] || "").length;
+  return v.toFixed(Math.min(dec || 2, 4));
+}
+function overridesFor(side, name) {
+  const spec = houseBots[name]?.params;
+  if (!spec) return undefined;
+  const cur = knobVals[side] || {}, out = {};
+  for (const k of Object.keys(spec)) {
+    if (cur[k] !== undefined && cur[k] !== spec[k].default) out[k] = cur[k];
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+function buildSide(side, name) {
+  const listEl = $(side === "home" ? "knobsHome" : "knobsAway");
+  $(side === "home" ? "knobsHomeName" : "knobsAwayName").textContent = cap(name);
+  const spec = houseBots[name]?.params;
+  knobVals[side] = {};
+  if (!spec || !Object.keys(spec).length) {
+    listEl.innerHTML = houseBots[name]
+      ? `<div class="knobs-empty">No knobs — this bot exposes none.</div>`
+      : `<div class="knobs-empty">Challenger bot — its knobs are private.</div>`;
+    return 0;
+  }
+  const keys = Object.keys(spec);
+  for (const k of keys) knobVals[side][k] = spec[k].default;
+  // apply shared-link overrides on first render
+  const pv = pendingUrlKnobs?.[side];
+  if (pv) for (const k of keys) if (typeof pv[k] === "number") knobVals[side][k] = clampSpec(pv[k], spec[k]);
+
+  listEl.innerHTML = keys.map((k) => {
+    const s = spec[k], cur = knobVals[side][k], changed = cur !== s.default;
+    return `<div class="knob${changed ? " changed" : ""}" data-side="${side}" data-key="${esc(k)}" title="${esc(s.help)}">
+      <div class="knob-top"><span class="knob-label">${esc(s.label || k)}</span><span class="knob-val">${fmtVal(cur, s.step)}</span></div>
+      <input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${cur}" aria-label="${esc(s.label || k)}">
+      <div class="knob-help">${esc(s.help)}</div>
+    </div>`;
+  }).join("");
+
+  for (const row of listEl.querySelectorAll(".knob")) {
+    const inp = row.querySelector("input"), key = row.dataset.key;
+    inp.addEventListener("input", () => {
+      const v = Number(inp.value);
+      knobVals[side][key] = v;
+      row.querySelector(".knob-val").textContent = fmtVal(v, Number(inp.step));
+      row.classList.toggle("changed", v !== spec[key].default);
+      updateResetVisible();
+      scheduleResim();
+    });
+  }
+  return keys.length;
+}
+
+function renderKnobs(home, away) {
+  if (!$("knobs")) return;
+  const total = buildSide("home", home) + buildSide("away", away);
+  pendingUrlKnobs = null; // shared-link values are a one-time apply
+  $("knobs").hidden = total === 0;
+  $("knobsCount").textContent = total ? `(${total})` : "";
+  const bothHouse = !!(houseBots[home] && houseBots[away]);
+  $("knobsNote").textContent = bothHouse
+    ? "Drag a knob — the match replays instantly in your browser."
+    : "Tuning a house bot re-runs the match on the server (~1–2s).";
+  $("knobsNote").hidden = total === 0;
+  updateResetVisible();
+}
+
+function updateResetVisible() {
+  const changed = !!(overridesFor("home", $("homeSel").value) || overridesFor("away", $("awaySel").value));
+  $("knobsReset").hidden = !changed;
+}
+
+function resetKnobs() {
+  for (const side of ["home", "away"]) {
+    const name = side === "home" ? $("homeSel").value : $("awaySel").value;
+    const spec = houseBots[name]?.params;
+    if (!spec) continue;
+    const listEl = $(side === "home" ? "knobsHome" : "knobsAway");
+    for (const row of listEl.querySelectorAll(".knob")) {
+      const k = row.dataset.key, d = spec[k].default, inp = row.querySelector("input");
+      knobVals[side][k] = d;
+      inp.value = String(d);
+      row.querySelector(".knob-val").textContent = fmtVal(d, Number(inp.step));
+      row.classList.remove("changed");
+    }
+  }
+  updateResetVisible();
+  scheduleResim();
+}
+$("knobsReset").addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); resetKnobs(); });
+
+// ---------- match running: house-vs-house runs in-browser; otherwise the server ----------
+let simWorker = null, simSeq = 0;
+const simPending = new Map();
+function clientSim(home, away, seed, homeParams, awayParams) {
+  if (!simWorker) {
+    simWorker = new Worker(new URL("./sim.worker.js", import.meta.url), { type: "module" });
+    simWorker.onmessage = (e) => {
+      const { id, ok, replay, error } = e.data, p = simPending.get(id);
+      if (!p) return;
+      simPending.delete(id);
+      ok ? p.resolve(replay) : p.reject(new Error(error || "sim failed"));
+    };
+    simWorker.onerror = () => { for (const p of simPending.values()) p.reject(new Error("sim worker error")); simPending.clear(); };
+  }
+  const id = ++simSeq;
+  return new Promise((resolve, reject) => {
+    simPending.set(id, { resolve, reject });
+    simWorker.postMessage({ id, home, away, seed: Number(seed) || 1, homeParams, awayParams });
+  });
+}
+
+// Run the current matchup with current knobs. Returns { replay, homeName, awayName }.
+async function simulate(home, away, seed) {
+  const hp = overridesFor("home", home), ap = overridesFor("away", away);
+  if (houseBots[home] && houseBots[away]) {
+    const replay = await clientSim(home, away, seed, hp, ap);
+    return { replay, homeName: cap(home), awayName: cap(away) };
+  }
+  const qs = new URLSearchParams({ home, away, seed: String(seed) });
+  if (hp) qs.set("homeParams", JSON.stringify(hp));
+  if (ap) qs.set("awayParams", JSON.stringify(ap));
+  const res = await fetch(`${API}/api/watch?${qs.toString()}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "match failed");
+  return { replay: data.replay, homeName: cap(data.home.name), awayName: cap(data.away.name) };
+}
+
+let runToken = 0; // newest run wins; stale async results are discarded
 
 async function watch() {
   const home = $("homeSel").value, away = $("awaySel").value, seed = $("seedInput").value || 1;
   if (!home || !away) return;
   updateUrl(home, away, seed);
+  const token = ++runToken;
   const btn = $("watchBtn");
   btn.disabled = true;
   const label = btn.textContent;
@@ -155,17 +310,48 @@ async function watch() {
   $("stageMsg").className = "stagemsg loading";
   $("stageMsg").textContent = "running match…";
   try {
-    const res = await fetch(`${API}/api/watch?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}&seed=${seed}`);
-    const data = await res.json();
-    if (!res.ok) { $("stageMsg").className = "stagemsg err"; $("stageMsg").textContent = data.error || "match failed"; return; }
-    player.load(data.replay, { home: cap(data.home.name), away: cap(data.away.name) });
+    const { replay, homeName, awayName } = await simulate(home, away, seed);
+    if (token !== runToken) return; // superseded by a newer run
+    player.load(replay, { home: homeName, away: awayName });
     $("stageMsg").className = "stagemsg"; $("stageMsg").textContent = "";
-  } catch {
-    $("stageMsg").className = "stagemsg err"; $("stageMsg").textContent = "couldn't run the match";
+  } catch (e) {
+    if (token !== runToken) return;
+    $("stageMsg").className = "stagemsg err"; $("stageMsg").textContent = e?.message || "couldn't run the match";
   } finally {
     btn.disabled = false;
     btn.textContent = label;
   }
+}
+
+// Re-run after a knob change: keep the matchup, preserve playback position, stay quiet.
+async function resim() {
+  const home = $("homeSel").value, away = $("awaySel").value, seed = $("seedInput").value || 1;
+  if (!home || !away) return;
+  updateUrl(home, away, seed);
+  const token = ++runToken;
+  const frac = player.replay ? player.i / player.replay.frames.length : 0;
+  const wasPlaying = player.playing;
+  const serverPath = !(houseBots[home] && houseBots[away]);
+  if (serverPath) { $("stageMsg").className = "stagemsg loading"; $("stageMsg").textContent = "re-running on server…"; }
+  try {
+    const { replay, homeName, awayName } = await simulate(home, away, seed);
+    if (token !== runToken) return;
+    player.load(replay, { home: homeName, away: awayName });
+    const len = replay.frames.length;
+    player.i = Math.min(len - 1, Math.round(frac * len)); // resume where they were watching
+    player.playing = wasPlaying;
+    if (serverPath) { $("stageMsg").className = "stagemsg"; $("stageMsg").textContent = ""; }
+  } catch (e) {
+    if (token !== runToken) return;
+    $("stageMsg").className = "stagemsg err"; $("stageMsg").textContent = e?.message || "re-run failed";
+  }
+}
+
+let resimTimer = null;
+function scheduleResim() {
+  const bothHouse = houseBots[$("homeSel").value] && houseBots[$("awaySel").value];
+  clearTimeout(resimTimer);
+  resimTimer = setTimeout(resim, bothHouse ? 90 : 450); // instant in-browser vs rate-limited server
 }
 
 // changing either dropdown re-runs immediately
