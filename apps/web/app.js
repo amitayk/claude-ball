@@ -513,6 +513,14 @@ Then I'll describe my football tactics and you'll write the bot code in that fol
 }
 $("botName").addEventListener("input", updateBotName);
 if ($("tourCode")) $("tourCode").addEventListener("input", updateBotName);
+// Tournament code is hidden by default (it scares newcomers); reveal on click.
+if ($("tourToggle")) $("tourToggle").addEventListener("click", () => {
+  const row = $("tourRow");
+  row.hidden = !row.hidden;
+  $("tourToggle").textContent = row.hidden ? "joining a tournament?" : "✕ not in a tournament";
+  if (!row.hidden) $("tourCode").focus();
+  else if ($("tourCode").value) { $("tourCode").value = ""; updateBotName(); } // clear code when collapsed
+});
 updateBotName();
 
 // OS tabs: the only OS-specific command is the install one. Auto-detect.

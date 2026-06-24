@@ -145,9 +145,9 @@
         <p class="muted small">Build a bot with your AI agent, then put it on the ladder.</p>
 
         <div class="namestep">
-          <b>1. Name your bot.</b>
+          <b>1. Name your bot.</b> <a id="tourToggle" class="small" style="color:var(--muted);cursor:pointer;text-decoration:underline dotted;margin-left:8px">joining a tournament?</a>
           <div class="namerow"><input id="botName" placeholder="your-bot-name" autocomplete="off" spellcheck="false" /><span id="nameStatus" class="namestatus"></span></div>
-          <div class="namerow"><input id="tourCode" placeholder="tournament code (optional - join your org's bracket)" autocomplete="off" spellcheck="false" /></div>
+          <div class="namerow" id="tourRow" hidden><input id="tourCode" placeholder="tournament code" autocomplete="off" spellcheck="false" /></div>
         </div>
 
         <div class="modestep">
