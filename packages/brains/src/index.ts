@@ -4,8 +4,9 @@ import { formation } from "./formation.js";
 import { flow } from "./flow.js";
 import { blitz } from "./blitz.js";
 import { possession } from "./possession.js";
+import { maestro } from "./maestro.js";
 
-export { chaser, formation, flow, blitz, possession };
+export { chaser, formation, flow, blitz, possession, maestro };
 
 export interface CatalogEntry {
   name: string;
@@ -21,11 +22,12 @@ export interface CatalogEntry {
  * (round-robin, points-based) and pasted back here; re-run it if a bot changes.
  */
 export const catalog: CatalogEntry[] = [
-  { name: "blitz", brain: blitz, skill: 92, blurb: "Keeper launches to a high striker; two pressers hunt." },
-  { name: "chaser", brain: chaser, skill: 83, blurb: "Everyone chases the ball; whoever has it shoots." },
-  { name: "formation", brain: formation, skill: 50, blurb: "Holds a 4-player shape; the nearest player presses." },
-  { name: "flow", brain: flow, skill: 19, blurb: "Keeper, deep playmaker, two channel runners; passes forward." },
-  { name: "possession", brain: possession, skill: 5, blurb: "Keeps the ball, works to the corners, rarely rushes." },
+  { name: "maestro", brain: maestro, skill: 86, blurb: "Total football: sweeper-keeper, one back presses, one man-marks goal-side; counters to a high striker and finishes into the open corner." },
+  { name: "blitz", brain: blitz, skill: 80, blurb: "Keeper launches to a high striker; two pressers hunt." },
+  { name: "chaser", brain: chaser, skill: 73, blurb: "Everyone chases the ball; whoever has it shoots." },
+  { name: "formation", brain: formation, skill: 40, blurb: "Holds a 4-player shape; the nearest player presses." },
+  { name: "flow", brain: flow, skill: 17, blurb: "Keeper, deep playmaker, two channel runners; passes forward." },
+  { name: "possession", brain: possession, skill: 3, blurb: "Keeps the ball, works to the corners, rarely rushes." },
 ];
 
 /** name → Brain lookup (used by the runner / coach server). */
