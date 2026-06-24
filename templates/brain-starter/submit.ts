@@ -12,8 +12,12 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
 const api = process.env.KR_API ?? "https://claude-ball.fly.dev";
-// handle: `npm run submit -- <handle>` (cross-platform) or KR_HANDLE=<handle>
-const handle = process.argv[2] || process.env.KR_HANDLE || "me";
+// args: `npm run submit -- <handle> [--tournament <code>]` (cross-platform)
+const args = process.argv.slice(2);
+const ti = args.indexOf("--tournament");
+const tournament = ti >= 0 ? args[ti + 1] : process.env.KR_TOURNAMENT;
+// handle = first positional arg that isn't a flag or a flag's value
+const handle = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--tournament") || process.env.KR_HANDLE || "me";
 const source = readFileSync("src/brain.ts", "utf8");
 const name = source.match(/name:\s*["'`]([^"'`]+)["'`]/)?.[1] ?? basename(resolve("."));
 const key = existsSync(".kr-key") ? readFileSync(".kr-key", "utf8").trim() : undefined;
@@ -21,7 +25,7 @@ const key = existsSync(".kr-key") ? readFileSync(".kr-key", "utf8").trim() : und
 const res = await fetch(`${api}/api/submit`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ handle, name, source, key }),
+  body: JSON.stringify({ handle, name, source, key, tournament }),
 });
 const data = (await res.json()) as {
   error?: string;
@@ -43,4 +47,6 @@ if (data.key) {
 const r = data.placement!.record;
 console.log(`\n  ✅ submitted "${data.bot!.name}" as @${data.bot!.handle}`);
 console.log(`     placed at Elo ${data.bot!.elo}  (${r.wins}W-${r.draws}D-${r.losses}L vs the library)`);
-console.log(`     watch it at ${api}/?home=${encodeURIComponent(data.bot!.name)}&away=blitz\n`);
+if (tournament) console.log(`     entered tournament "${tournament}" → ${api}/tournament.html?slug=${encodeURIComponent(tournament)}`);
+else console.log(`     watch it at ${api}/?home=${encodeURIComponent(data.bot!.name)}&away=blitz`);
+console.log("");

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>claude-ball · tournament</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <style>
+      .wrap { max-width: 1100px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px) 60px; position: relative; z-index: 1; }
+      .tophead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 26px 0; flex-wrap: wrap; }
+      .tophead .logo { font-weight: 700; }
+      .tophead a.back { color: var(--muted); text-decoration: none; font-weight: 600; }
+      .tophead a.back:hover { color: var(--text); }
+      .tlist { list-style: none; margin: 14px 0 0; padding: 0; }
+      .tlist li { margin-bottom: 8px; }
+      .tlist .ent { display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 11px 14px; border: 1px solid var(--line); border-radius: 10px; background: #11160f; }
+      .tlist .meta { color: var(--muted); font-size: 13px; }
+      .bracket { display: flex; gap: 22px; overflow-x: auto; padding: 10px 2px 4px; }
+      .round { display: flex; flex-direction: column; gap: 14px; justify-content: space-around; min-width: 240px; }
+      .roundname { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-bottom: 2px; }
+      .match { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; background: #11160f; transition: border-color .12s; }
+      .match:hover { border-color: var(--accent); }
+      .match.bye { opacity: 0.65; cursor: default; }
+      .slot { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; font-weight: 600; color: var(--muted); }
+      .slot + .slot { border-top: 1px solid var(--line); }
+      .slot.win { color: var(--text); background: rgba(255,122,60,0.12); }
+      .slot.win b { color: var(--accent); }
+      .champ { font-size: 19px; margin-bottom: 16px; }
+      .champ b { color: var(--accent); }
+      .controls { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+      .controls input[type=range] { flex: 1; accent-color: var(--accent); }
+      .controls button { background: #21271f; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="tophead">
+        <div class="logo" id="thead">⚽ claude-ball</div>
+        <a class="back" href="/tournaments.html">← all tournaments</a>
+      </div>
+
+      <section class="card">
+        <h2>How to enter</h2>
+        <p class="muted small">Build a bot on <a href="/" style="color:var(--accent)">the arena</a>, then submit it with this tournament's code:</p>
+        <div class="cmdrow"><code class="cmd" id="joincmd">npm run submit -- your-bot-name --tournament …</code><button class="copy" id="joincopy">Copy</button></div>
+        <p class="muted small">Or paste the code <b id="slugtext"></b> into <b>Compete → tournament code</b> on the arena page.</p>
+      </section>
+
+      <section class="card" style="margin-top:18px">
+        <div class="board-head">
+          <h2 id="entrantsTitle">Entrants</h2>
+          <button id="runBtn" class="primary">▶ Start playoff</button>
+        </div>
+        <div id="runMsg" class="stagemsg" style="text-align:left"></div>
+        <ul id="entrants" class="tlist"></ul>
+      </section>
+
+      <section class="card" id="bracketCard" style="margin-top:18px;display:none">
+        <h2>Playoff</h2>
+        <div id="champ"></div>
+        <div id="bracket" class="bracket"></div>
+        <p class="muted small" style="margin-top:10px">Click any match to watch it.</p>
+      </section>
+
+      <section class="card" id="watchCard" style="margin-top:18px;display:none">
+        <div id="watchTitle" class="muted small" style="margin-bottom:8px"></div>
+        <div class="stagewrap" style="display:flex;justify-content:center"><canvas id="pitch" width="1050" height="680" style="max-width:100%;max-height:60vh;border-radius:10px;background:var(--pitch)"></canvas></div>
+        <div class="controls"><button id="pp" title="Play / pause">⏸</button><input id="scrub" type="range" min="0" max="0" value="0" /><span id="ttime" class="muted small">0.0s</span></div>
+      </section>
+    </div>
+    <script type="module" src="./tournament.js"></script>
+  </body>
+</html>

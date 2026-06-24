@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>claude-ball · tournaments</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./style.css" />
+    <style>
+      .wrap { max-width: 860px; margin: 0 auto; padding: 0 clamp(16px, 4vw, 40px) 60px; position: relative; z-index: 1; }
+      .tophead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 26px 0; flex-wrap: wrap; }
+      .tophead .logo { font-weight: 700; }
+      .tophead a.back { color: var(--muted); text-decoration: none; font-weight: 600; }
+      .tophead a.back:hover { color: var(--text); }
+      .createrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+      .createrow input { flex: 1 1 180px; background: #0e1311; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; color: var(--text); font: inherit; }
+      .createrow input:focus { outline: none; border-color: var(--accent); }
+      .tlist { list-style: none; margin: 18px 0 0; padding: 0; }
+      .tlist li { margin-bottom: 10px; }
+      .tlist a { display: flex; align-items: center; gap: 12px; justify-content: space-between; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--text); background: var(--card); }
+      .tlist a:hover { border-color: #475049; }
+      .tlist .meta { color: var(--muted); font-size: 13px; }
+      .badge { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+      .badge.done { color: var(--accent); border-color: rgba(255,122,60,0.4); }
+      .slugbox { margin-top: 14px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #0e1311; }
+    </style>
+  </head>
+  <body>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="tophead">
+        <div class="logo">⚽ claude-ball · tournaments</div>
+        <a class="back" href="/">← back to the arena</a>
+      </div>
+
+      <section class="card">
+        <h2>Create a tournament</h2>
+        <p class="muted small">For your team, office, or friends. You get a code — players paste it into <b>Compete</b>, and their bots join your private bracket instead of the public ladder.</p>
+        <div class="createrow">
+          <input id="org" placeholder="Organization (e.g. Acme Eng)" autocomplete="off" />
+          <input id="tname" placeholder="Tournament name (e.g. Summer Cup)" autocomplete="off" />
+          <button id="createBtn" class="primary">Create</button>
+        </div>
+        <div id="created"></div>
+      </section>
+
+      <h2 style="margin: 28px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted);">Tournaments</h2>
+      <ul id="tlist" class="tlist"><li class="muted">loading…</li></ul>
+    </div>
+    <script type="module" src="./tournaments.js"></script>
+  </body>
+</html>

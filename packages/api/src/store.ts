@@ -15,36 +15,59 @@ export interface BotRecord {
   source: string;
   /** sha256 of the owner's claim key (user bots only); proves ownership on resubmit. */
   secret?: string;
+  /** Tournament slug this bot belongs to (org tournaments). Tagged bots are kept
+   *  off the public ladder and only appear inside their tournament. */
+  tournament?: string;
   createdAt: number;
 }
 
 /** Public view of a bot (no source, no secret). */
 export type PublicBot = Omit<BotRecord, "source" | "secret">;
 
-export interface Store {
-  leaderboard(): PublicBot[];
-  find(idOrName: string): BotRecord | undefined;
-  upsertUserBot(input: {
-    handle: string;
-    name: string;
-    elo: number;
-    source: string;
-    secret: string;
-    record?: BotRecord["record"];
-  }): BotRecord;
-  deleteBot(id: string): boolean;
+/** A single match in a playoff bracket. Bots are referenced by store id so the
+ *  match can be replayed on demand (deterministic) — we never store replays. */
+export interface BracketMatch {
+  round: number;
+  a?: { id: string; name: string; handle: string };
+  b?: { id: string; name: string; handle: string };
+  seed: number;
+  score?: { a: number; b: number };
+  winner?: { id: string; name: string; handle: string };
+  bye?: boolean;
+  note?: string;
+}
+export interface TournamentResult {
+  ranAt: number;
+  champion: { id: string; name: string; handle: string };
+  rounds: BracketMatch[][];
+}
+export interface Tournament {
+  slug: string;
+  org: string;
+  name: string;
+  orgId: string;
+  tourId: string;
+  status: "open" | "done";
+  createdAt: number;
+  result?: TournamentResult;
 }
 
 const strip = ({ source: _s, secret: _k, ...rest }: BotRecord): PublicBot => rest;
+const slugify = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 24) || "x";
+const rnd = () => Math.random().toString(36).slice(2, 6);
 
 // Current on-disk source for each library bot, so library matchups always bundle
 // against the code we ship (immune to stale source persisted before a rename).
 const liveLibrarySource = new Map(libraryBots.map((b) => [b.name, b.source]));
 
-export class JsonStore implements Store {
+export class JsonStore {
   private bots: BotRecord[] = [];
+  private tours: Tournament[] = [];
+  private readonly toursFile: string;
 
   constructor(private readonly file: string) {
+    this.toursFile = file.replace(/\.json$/i, "") + ".tours.json";
     if (existsSync(file)) {
       this.bots = JSON.parse(readFileSync(file, "utf8")) as BotRecord[];
     } else {
@@ -60,15 +83,21 @@ export class JsonStore implements Store {
       }));
       this.save();
     }
+    if (existsSync(this.toursFile)) this.tours = JSON.parse(readFileSync(this.toursFile, "utf8")) as Tournament[];
   }
 
   private save(): void {
     mkdirSync(dirname(this.file), { recursive: true });
     writeFileSync(this.file, JSON.stringify(this.bots, null, 2));
   }
+  private saveTours(): void {
+    mkdirSync(dirname(this.toursFile), { recursive: true });
+    writeFileSync(this.toursFile, JSON.stringify(this.tours, null, 2));
+  }
 
+  /** Public ladder — excludes tournament bots so org games stay private. */
   leaderboard(): PublicBot[] {
-    return [...this.bots].sort((a, b) => b.elo - a.elo).map(strip);
+    return [...this.bots].filter((b) => !b.tournament).sort((a, b) => b.elo - a.elo).map(strip);
   }
 
   find(idOrName: string): BotRecord | undefined {
@@ -87,6 +116,7 @@ export class JsonStore implements Store {
     source: string;
     secret: string;
     record?: BotRecord["record"];
+    tournament?: string;
   }): BotRecord {
     const id = `user-${input.handle}`;
     const existing = this.bots.find((b) => b.id === id);
@@ -99,6 +129,8 @@ export class JsonStore implements Store {
       record: input.record,
       source: input.source,
       secret: input.secret,
+      // keep an existing tournament tag if this resubmit didn't specify one
+      tournament: input.tournament ?? existing?.tournament,
       createdAt: existing?.createdAt ?? Date.now(),
     };
     if (existing) Object.assign(existing, rec);
@@ -113,5 +145,42 @@ export class JsonStore implements Store {
     if (this.bots.length === before) return false;
     this.save();
     return true;
+  }
+
+  // ── tournaments ───────────────────────────────────────────────────────────
+  createTournament(org: string, name: string): Tournament {
+    let slug = `${slugify(org)}-${slugify(name)}`;
+    while (this.tours.some((t) => t.slug === slug)) slug = `${slugify(org)}-${slugify(name)}-${rnd()}`;
+    const t: Tournament = {
+      slug,
+      org: org.trim().slice(0, 60) || "org",
+      name: name.trim().slice(0, 60) || "tournament",
+      orgId: `org-${rnd()}`,
+      tourId: `t-${rnd()}`,
+      status: "open",
+      createdAt: Date.now(),
+    };
+    this.tours.push(t);
+    this.saveTours();
+    return t;
+  }
+  getTournament(slug: string): Tournament | undefined {
+    return this.tours.find((t) => t.slug === slug);
+  }
+  listTournaments(): (Omit<Tournament, "result"> & { bots: number; champion?: string })[] {
+    return [...this.tours]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map(({ result, ...t }) => ({ ...t, bots: this.tournamentBots(t.slug).length, champion: result?.champion.name }));
+  }
+  /** Full bot records for a tournament (includes source — server-only). */
+  tournamentBots(slug: string): BotRecord[] {
+    return this.bots.filter((b) => b.tournament === slug);
+  }
+  saveTournamentResult(slug: string, result: TournamentResult): void {
+    const t = this.getTournament(slug);
+    if (!t) return;
+    t.result = result;
+    t.status = "done";
+    this.saveTours();
   }
 }
