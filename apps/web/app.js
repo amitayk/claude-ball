@@ -255,7 +255,7 @@ $("coachBtn").addEventListener("click", () => switchTab("knobs"));
 // hasn't opened the Knobs tab yet.
 const SHAKES = ["sh1", "sh2", "sh3", "sh4"];
 function scheduleShake() {
-  const delay = 3500 + Math.random() * 4000; // 3.5–7.5s apart
+  const delay = 1500 + Math.random() * 2000; // 1.5–3.5s apart
   setTimeout(() => {
     const btn = $("coachBtn");
     if (btn && !btn.hidden && !btn.classList.contains("active")) {

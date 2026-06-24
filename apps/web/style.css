@@ -133,7 +133,6 @@ button.primary:hover { filter: brightness(1.06); }
 }
 .coachbtn:hover { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255,122,60,.12); transform: translateY(-1px); }
 .coachbtn[hidden] { display: none; }
-.coach-ico { color: var(--accent); flex: none; }
 .coach-label { line-height: 1; }
 .coach-live {
   display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 6px;
@@ -144,7 +143,6 @@ button.primary:hover { filter: brightness(1.06); }
 @keyframes coachpulse { 0% { box-shadow: 0 0 0 0 rgba(84,217,138,.55); } 70% { box-shadow: 0 0 0 5px rgba(84,217,138,0); } 100% { box-shadow: 0 0 0 0 rgba(84,217,138,0); } }
 /* active = Knobs tab open: go solid accent */
 .coachbtn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: none; transform: none; }
-.coachbtn.active .coach-ico { color: var(--accent-ink); }
 .coachbtn.active .coach-live { background: rgba(36,16,3,.18); color: var(--accent-ink); }
 .coachbtn.active .coach-dot { background: var(--accent-ink); box-shadow: none; animation: none; }
 
@@ -153,10 +151,10 @@ button.primary:hover { filter: brightness(1.06); }
 .coachbtn.sh2 { animation: sh2 var(--shdur,.45s) ease both; }
 .coachbtn.sh3 { animation: sh3 var(--shdur,.5s) ease both; }
 .coachbtn.sh4 { animation: sh4 var(--shdur,.5s) cubic-bezier(.36,.07,.19,.97) both; }
-@keyframes sh1 { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-2px); } 40% { transform: translateX(2px); } 60% { transform: translateX(-1.5px); } 80% { transform: translateX(1.5px); } }
-@keyframes sh2 { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 50% { transform: rotate(2.5deg); } 75% { transform: rotate(-1.5deg); } }
-@keyframes sh3 { 0%,100% { transform: translate(0,0) rotate(0); } 30% { transform: translate(-1.5px,1px) rotate(-2deg); } 65% { transform: translate(1.5px,-1px) rotate(2deg); } }
-@keyframes sh4 { 0%,100% { transform: translateX(0); } 15% { transform: translateX(-3px); } 30% { transform: translateX(3px); } 45% { transform: translateX(-2px); } 60% { transform: translateX(2px); } 75% { transform: translateX(-1px); } }
+@keyframes sh1 { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-1px); } 50% { transform: translateX(1px); } 75% { transform: translateX(-0.6px); } }
+@keyframes sh2 { 0%,100% { transform: rotate(0); } 30% { transform: rotate(-1.2deg); } 65% { transform: rotate(1deg); } }
+@keyframes sh3 { 0%,100% { transform: translate(0,0) rotate(0); } 35% { transform: translate(-0.8px,0.5px) rotate(-0.8deg); } 70% { transform: translate(0.8px,-0.5px) rotate(0.8deg); } }
+@keyframes sh4 { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-1.2px); } 40% { transform: translateX(1.2px); } 60% { transform: translateX(-0.8px); } 80% { transform: translateX(0.7px); } }
 
 /* ---------- sidebar tabs (Leaderboard / Knobs) ---------- */
 .sidebar-tabs { display: flex; gap: 6px; margin-bottom: 14px; border-bottom: 1px solid var(--line); }
