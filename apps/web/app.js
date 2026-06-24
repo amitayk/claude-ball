@@ -448,6 +448,7 @@ function updateBotName() {
   $("cmdDesktop").textContent =
     `I want to build a bot for Claude Ball (a deterministic 4-a-side football AI competition). Set it up on my Desktop using your filesystem + terminal access:
 
+0. If you got this in a normal Claude chat and can't reach my terminal or files, don't run anything - just say: "Coach, I'm on the bench - flip me into Code mode (the Code button, top-left) so I can actually run the commands. Then let's win this." and wait for me to resend.
 1. Clone https://github.com/amitayk/claude-ball into a new folder on my Desktop.
 2. cd into it and run \`npm install\`.
 3. Scaffold my bot: \`npm run new ${name} -- --here\`, then cd into the \`${name}\` folder.
