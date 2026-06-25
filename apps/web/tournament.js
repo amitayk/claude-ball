@@ -4,6 +4,7 @@ const API = ["localhost", "127.0.0.1"].includes(location.hostname) ? "http://loc
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+const gc = (path, title) => { try { window.goatcounter && window.goatcounter.count({ path, title, event: true }); } catch (e) {} };
 const slug = new URLSearchParams(location.search).get("slug") || "";
 
 let player = null;
@@ -51,6 +52,7 @@ $("runBtn").addEventListener("click", async () => {
     if (!r.ok) { $("runMsg").className = "stagemsg err"; $("runMsg").textContent = d.error || "failed"; return; }
     $("runMsg").className = "stagemsg"; $("runMsg").textContent = "";
     result = d.tournament.result;
+    gc("league-run", "League run"); // B2B-intent funnel signal
     $("runBtn").textContent = "↻ Re-run league";
     startCinematic();
   } catch {

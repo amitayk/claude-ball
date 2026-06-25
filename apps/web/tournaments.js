@@ -1,6 +1,7 @@
 const API = ["localhost", "127.0.0.1"].includes(location.hostname) ? "http://localhost:8787" : "";
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const gc = (path, title) => { try { window.goatcounter && window.goatcounter.count({ path, title, event: true }); } catch (e) {} };
 
 async function load() {
   try {
@@ -40,6 +41,7 @@ $("createBtn").addEventListener("click", async () => {
         <a class="primary" style="display:inline-block;margin-top:12px;text-decoration:none" href="/tournament.html?slug=${encodeURIComponent(slug)}">Open tournament →</a>
       </div>`;
     $("org").value = ""; $("tname").value = "";
+    gc("tournament-created", "Tournament created"); // B2B-intent funnel signal
     bindCopy();
     load();
   } finally {
