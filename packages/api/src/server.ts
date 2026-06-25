@@ -7,7 +7,7 @@ import type { IncomingMessage } from "node:http";
 import { placeBrainSource } from "@claude-ball/ladder";
 import { runSandboxedMatch, introspectBrain } from "@claude-ball/arena";
 import { JsonStore } from "./store.js";
-import type { BotRecord, TournamentResult } from "./store.js";
+import type { BotRecord, Tournament, TournamentResult } from "./store.js";
 import { allow, WorkQueue } from "./limits.js";
 
 const sha256 = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -134,6 +134,27 @@ async function runLeague(entrants: BotRecord[]): Promise<TournamentResult> {
   return { ranAt: Date.now(), format: "league", champion: { id: top.id, name: top.name, handle: top.handle }, games, standings };
 }
 
+// ── Slack viral loop (Incoming Webhooks) ─────────────────────────────────────
+const originOf = (req: IncomingMessage) =>
+  `${(req.headers["x-forwarded-proto"] as string) || "http"}://${req.headers.host}`;
+async function postSlack(url: string, text: string): Promise<boolean> {
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+const inviteText = (t: Tournament, origin: string) =>
+  `:soccer: *${t.org}* is running a claude-ball league: *${t.name}*\n` +
+  `Build a bot and join: \`npm run submit -- your-bot-name --tournament ${t.slug}\`\n` +
+  `Standings & live matches: ${origin}/tournament.html?slug=${t.slug}`;
+const resultText = (t: Tournament, origin: string) => {
+  const r = t.result!;
+  const table = r.standings.map((s, i) => `${i + 1}. *${s.name}* — ${s.pts} pts (${s.w}-${s.d}-${s.l})`).join("\n");
+  return `:trophy: *${t.name}* — full time!\n*${r.champion.name}* wins the league :tada:\n\n${table}\n\nWatch every game: ${origin}/tournament.html?slug=${t.slug}`;
+};
+
 const server = createServer((req, res) => {
   if (req.method === "OPTIONS") return json(res, 204, {});
   const url = (req.url ?? "/").split("?")[0] ?? "/";
@@ -255,8 +276,9 @@ const server = createServer((req, res) => {
     const slug = new URLSearchParams((req.url ?? "").split("?")[1] ?? "").get("slug") ?? "";
     const t = store.getTournament(slug);
     if (!t) return json(res, 404, { error: "unknown tournament" });
+    const { slackWebhook, ...pub } = t; // never expose the webhook
     const bots = store.tournamentBots(slug).map((b) => ({ id: b.id, name: b.name, handle: b.handle, elo: b.elo, record: b.record }));
-    return json(res, 200, { tournament: t, bots });
+    return json(res, 200, { tournament: { ...pub, slackConnected: !!slackWebhook }, bots });
   }
   if (req.method === "POST" && url === "/api/tournaments") {
     let body = "";
@@ -289,7 +311,56 @@ const server = createServer((req, res) => {
         if (heavy.full) return json(res, 503, { error: "arena busy - try again in a moment" });
         const result = await runLeague(entrants);
         store.saveTournamentResult(t.slug, result);
-        return json(res, 200, { tournament: store.getTournament(t.slug) });
+        const done = store.getTournament(t.slug)!;
+        if (done.slackWebhook) void postSlack(done.slackWebhook, resultText(done, originOf(req))); // viral loop: results land in the team channel
+        const { slackWebhook, ...pub } = done;
+        return json(res, 200, { tournament: { ...pub, slackConnected: !!slackWebhook } });
+      } catch (err) {
+        return json(res, 400, { error: err instanceof Error ? err.message : String(err) });
+      }
+    });
+    return;
+  }
+
+  // Connect a Slack channel (Incoming Webhook). Posts a confirmation on success.
+  if (req.method === "POST" && url === "/api/tournament/slack") {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", async () => {
+      try {
+        const { slug, webhook } = JSON.parse(body || "{}") as { slug?: string; webhook?: string };
+        const t = store.getTournament(String(slug ?? ""));
+        if (!t) return json(res, 404, { error: "unknown tournament" });
+        if (!allow(`slack:${clientIp(req)}`, 30, 600_000)) return json(res, 429, { error: "slow down" });
+        const hook = String(webhook ?? "").trim();
+        if (!/^https:\/\/hooks\.slack\.com\/services\//.test(hook)) {
+          return json(res, 400, { error: "that's not a Slack Incoming Webhook URL (https://hooks.slack.com/services/…)" });
+        }
+        if (!(await postSlack(hook, `:white_check_mark: claude-ball connected — *${t.name}* invites and results will post here.`))) {
+          return json(res, 400, { error: "couldn't post to that webhook - double-check the URL" });
+        }
+        store.setSlackWebhook(t.slug, hook);
+        return json(res, 200, { ok: true, slackConnected: true });
+      } catch (err) {
+        return json(res, 400, { error: err instanceof Error ? err.message : String(err) });
+      }
+    });
+    return;
+  }
+
+  // Post the "join our league" invite to the connected Slack channel.
+  if (req.method === "POST" && url === "/api/tournament/invite") {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", async () => {
+      try {
+        const { slug } = JSON.parse(body || "{}") as { slug?: string };
+        const t = store.getTournament(String(slug ?? ""));
+        if (!t) return json(res, 404, { error: "unknown tournament" });
+        if (!t.slackWebhook) return json(res, 400, { error: "connect a Slack channel first" });
+        if (!allow(`slack:${clientIp(req)}`, 30, 600_000)) return json(res, 429, { error: "slow down" });
+        const ok = await postSlack(t.slackWebhook, inviteText(t, originOf(req)));
+        return json(res, ok ? 200 : 400, ok ? { ok: true } : { error: "couldn't post to Slack" });
       } catch (err) {
         return json(res, 400, { error: err instanceof Error ? err.message : String(err) });
       }

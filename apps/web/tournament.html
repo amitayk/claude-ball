@@ -4,6 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>claude-ball · tournament</title>
+    <meta property="og:title" content="claude-ball league" />
+    <meta property="og:description" content="A coach-your-bot soccer league for your team. Describe tactics in plain English, your AI writes the bot, watch it climb the table." />
+    <meta property="og:image" content="https://claude-ball.fly.dev/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./style.css" />
     <style>
@@ -95,6 +99,28 @@
         <p class="muted small">Build a bot on <a href="/" style="color:var(--accent)">the arena</a>, then submit it with this tournament's code:</p>
         <div class="cmdrow"><code class="cmd" id="joincmd">npm run submit -- your-bot-name --tournament …</code><button class="copy" id="joincopy">Copy</button></div>
         <p class="muted small">Or paste the code <b id="slugtext"></b> into <b>Compete → tournament code</b> on the arena page.</p>
+      </section>
+
+      <section class="card" id="inviteCard" style="margin-top:18px">
+        <h2>📣 Invite your team</h2>
+        <p class="muted small">One click — paste it into your team's Slack, Discord, or chat. No setup. They join from the link.</p>
+        <div class="cmdrow">
+          <button id="copyInvite" class="primary" style="flex:1">📋 Copy team invite</button>
+          <button id="copyLink" class="copy">Copy link</button>
+        </div>
+        <div id="inviteMsg" class="stagemsg" style="text-align:left"></div>
+        <details class="install" style="margin-top:14px">
+          <summary>Auto-post results to Slack (optional)</summary>
+          <p class="muted small">Connect a channel's <a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener" style="color:var(--accent)">Incoming Webhook</a> and the champion + final table auto-post there when a league runs.</p>
+          <div id="slackForm">
+            <div class="cmdrow"><input id="slackUrl" class="cmd" placeholder="https://hooks.slack.com/services/…" autocomplete="off" spellcheck="false" style="font-family:inherit;color:var(--text)" /><button id="slackConnect" class="primary">Connect</button></div>
+          </div>
+          <div id="slackOn" style="display:none">
+            <p class="small" style="color:#5fd068;margin:0 0 10px">✓ Slack connected — results auto-post when a league runs.</p>
+            <button id="slackInvite" class="primary">Post the join-invite to the channel</button>
+          </div>
+          <div id="slackMsg" class="stagemsg" style="text-align:left"></div>
+        </details>
       </section>
 
       <section class="card" style="margin-top:18px">

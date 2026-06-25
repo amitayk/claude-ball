@@ -73,6 +73,9 @@ export interface Tournament {
   status: "open" | "done";
   createdAt: number;
   result?: TournamentResult;
+  /** Slack Incoming Webhook URL (secret) — when set, invites/results post to that
+   *  channel. Never returned by the API. */
+  slackWebhook?: string;
 }
 
 const strip = ({ source: _s, secret: _k, ...rest }: BotRecord): PublicBot => rest;
@@ -217,10 +220,10 @@ export class JsonStore {
   getTournament(slug: string): Tournament | undefined {
     return this.tours.find((t) => t.slug === slug);
   }
-  listTournaments(): (Omit<Tournament, "result"> & { bots: number; champion?: string })[] {
+  listTournaments(): (Omit<Tournament, "result" | "slackWebhook"> & { bots: number; champion?: string })[] {
     return [...this.tours]
       .sort((a, b) => b.createdAt - a.createdAt)
-      .map(({ result, ...t }) => ({ ...t, bots: this.tournamentBots(t.slug).length, champion: result?.champion.name }));
+      .map(({ result, slackWebhook, ...t }) => ({ ...t, bots: this.tournamentBots(t.slug).length, champion: result?.champion.name }));
   }
   /** Full bot records for a tournament (includes source — server-only). */
   tournamentBots(slug: string): BotRecord[] {
@@ -231,6 +234,12 @@ export class JsonStore {
     if (!t) return;
     t.result = result;
     t.status = "done";
+    this.saveTours();
+  }
+  setSlackWebhook(slug: string, url: string | undefined): void {
+    const t = this.getTournament(slug);
+    if (!t) return;
+    t.slackWebhook = url;
     this.saveTours();
   }
 }

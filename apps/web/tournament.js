@@ -8,6 +8,7 @@ const gc = (path, title) => { try { window.goatcounter && window.goatcounter.cou
 const slug = new URLSearchParams(location.search).get("slug") || "";
 
 let player = null;
+let tourMeta = null;          // { org, name, slug } for building the invite message
 let result = null;            // current league result { games, standings, champion }
 let refs = new Map();         // id -> { name, handle }
 let games = [];
@@ -27,6 +28,7 @@ async function load() {
     return;
   }
   const { tournament: t, bots } = data;
+  tourMeta = { org: t.org, name: t.name, slug: t.slug };
   document.title = `${t.name} · claude-ball`;
   $("thead").textContent = `⚽ ${t.name}`;
   $("slugtext").textContent = t.slug;
@@ -39,6 +41,7 @@ async function load() {
   $("runBtn").disabled = bots.length < 2;
   $("runBtn").textContent = t.status === "done" ? "↻ Re-run league" : "▶ Kick off the league";
 
+  if (t.slackConnected) { $("slackForm").style.display = "none"; $("slackOn").style.display = ""; }
   if (t.result) { result = t.result; finalize(false); } // show finished table + podium, ready to replay
 }
 
@@ -206,6 +209,55 @@ $("pp").addEventListener("click", () => player?.toggle());
 $("scrub").addEventListener("input", () => player?.seek(Number($("scrub").value)));
 $("joincopy").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("joincmd").textContent); const t = $("joincopy").textContent; $("joincopy").textContent = "Copied ✓"; setTimeout(() => ($("joincopy").textContent = t), 1200); } catch {}
+});
+
+// ── invite your team (zero-setup, channel-agnostic) ─────────────────────────────
+const inviteMessage = () =>
+  `⚽ ${tourMeta.org} is running a claude-ball league: ${tourMeta.name}\n` +
+  `Join: build a soccer bot in plain English (your AI writes the code), then submit it with the code "${tourMeta.slug}".\n` +
+  `Watch live standings & every match here: ${location.href}`;
+const copyText = async (text) => { try { await navigator.clipboard.writeText(text); return true; } catch { return false; } };
+$("copyInvite").addEventListener("click", async () => {
+  if (!tourMeta) return;
+  const ok = await copyText(inviteMessage());
+  $("inviteMsg").className = ok ? "stagemsg" : "stagemsg err";
+  $("inviteMsg").textContent = ok ? "✓ invite copied — paste it in your team's chat" : "couldn't copy";
+  if (ok) gc("team-invite-copied", "Team invite copied");
+  setTimeout(() => { $("inviteMsg").textContent = ""; }, 2600);
+});
+$("copyLink").addEventListener("click", async () => {
+  const ok = await copyText(location.href);
+  const b = $("copyLink"), label = b.textContent;
+  b.textContent = ok ? "Copied ✓" : "failed"; setTimeout(() => (b.textContent = label), 1200);
+  if (ok) gc("team-link-copied", "Team link copied");
+});
+
+// ── Slack auto-post (optional, advanced) ────────────────────────────────────────
+$("slackConnect").addEventListener("click", async () => {
+  const webhook = $("slackUrl").value.trim();
+  if (!webhook) { $("slackMsg").className = "stagemsg err"; $("slackMsg").textContent = "paste a webhook URL first"; return; }
+  $("slackConnect").disabled = true; $("slackMsg").className = "stagemsg loading"; $("slackMsg").textContent = "connecting…";
+  try {
+    const r = await fetch(`${API}/api/tournament/slack`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug, webhook }) });
+    const d = await r.json();
+    if (!r.ok) { $("slackMsg").className = "stagemsg err"; $("slackMsg").textContent = d.error || "failed"; return; }
+    $("slackMsg").className = "stagemsg"; $("slackMsg").textContent = "";
+    $("slackForm").style.display = "none"; $("slackOn").style.display = "";
+    gc("slack-connected", "Slack connected");
+  } catch { $("slackMsg").className = "stagemsg err"; $("slackMsg").textContent = "couldn't connect"; }
+  finally { $("slackConnect").disabled = false; }
+});
+$("slackInvite").addEventListener("click", async () => {
+  $("slackInvite").disabled = true;
+  try {
+    const r = await fetch(`${API}/api/tournament/invite`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ slug }) });
+    const d = await r.json();
+    $("slackMsg").className = r.ok ? "stagemsg" : "stagemsg err";
+    $("slackMsg").textContent = r.ok ? "✓ invite posted to your Slack channel" : (d.error || "failed");
+    if (r.ok) gc("slack-invite", "Slack invite posted");
+    setTimeout(() => { $("slackMsg").textContent = ""; }, 2500);
+  } catch { $("slackMsg").className = "stagemsg err"; $("slackMsg").textContent = "couldn't post"; }
+  finally { $("slackInvite").disabled = false; }
 });
 
 load();
