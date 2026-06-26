@@ -1,5 +1,5 @@
-import type { Brain, ParamValues, Side, TeamIntent } from "@claude-ball/brain-api";
-import { resolveParams } from "@claude-ball/brain-api";
+import type { Brain, Metrics, ParamValues, Side, TeamIntent } from "@claude-ball/brain-api";
+import { collectMetrics, resolveParams } from "@claude-ball/brain-api";
 import { RULES } from "./constants.js";
 import { Rng } from "./rng.js";
 import { kickoff, type WorldState } from "./world.js";
@@ -36,6 +36,12 @@ export interface MatchResult {
   };
   score: { home: number; away: number };
   frames: ReplayFrame[];
+  /**
+   * Per-frame live metrics reported by the HOME brain via `reportMetrics()`,
+   * aligned 1:1 with `frames` (null where nothing was reported). Used by the
+   * coach workbench's "Your metrics" panel; ignored elsewhere.
+   */
+  homeMetrics: (Metrics | null)[];
 }
 
 function ballMode(world: WorldState): { mode: BallMode; side: "home" | "away" | null } {
@@ -117,6 +123,9 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
   const openingSide: Side = rng.next() < 0.5 ? "home" : "away";
   let world = kickoff(rng, openingSide);
   const frames: ReplayFrame[] = [snapshot(world)];
+  // homeMetrics[i] is whatever the home brain reported on the tick that produced
+  // frames[i] (null for the opening snapshot). Kept in lockstep with `frames`.
+  const homeMetrics: (Metrics | null)[] = [null];
 
   const budget = opts.brainBudgetMs;
   let homeMs = 0;
@@ -127,9 +136,12 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
     let t = performance.now();
     const homeIntents = safeDecide(home, world, "home", homeParams);
     homeMs += performance.now() - t;
+    // Grab the home brain's reported metrics for this tick (clears the channel).
+    const tickMetrics = collectMetrics();
     t = performance.now();
     const awayIntents = safeDecide(away, world, "away", awayParams);
     awayMs += performance.now() - t;
+    collectMetrics(); // discard any away report so it can't bleed into next tick
 
     if (budget !== undefined) {
       if (homeMs > budget) fault = { side: "home", reason: `brain exceeded ${budget}ms compute budget` };
@@ -139,6 +151,7 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
 
     world = step(world, homeIntents, awayIntents, rng);
     frames.push(snapshot(world));
+    homeMetrics.push(tickMetrics);
   }
 
   return {
@@ -153,5 +166,6 @@ export function runMatch(home: Brain, away: Brain, opts: RunOptions = {}): Match
     },
     score: { ...world.score },
     frames,
+    homeMetrics,
   };
 }

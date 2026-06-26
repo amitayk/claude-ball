@@ -4,96 +4,138 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>claude-ball · coach</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;700&family=Saira:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./style.css" />
-    <style>
-      .tips summary { cursor: pointer; font-weight: 700; list-style: none; }
-      .tips summary::-webkit-details-marker { display: none; }
-      .tips summary::before { content: "▸ "; }
-      .tips[open] summary::before { content: "▾ "; }
-      .tips[open] summary { margin-bottom: 8px; }
-      .tiplist { margin: 0; padding-left: 18px; }
-      .tiplist li { margin-bottom: 7px; font-size: 13px; opacity: 0.85; }
-      .tiplist b { opacity: 1; font-weight: 700; }
-    </style>
+    <link rel="icon" href="./favicon.svg" />
   </head>
   <body>
-    <header>
-      <div class="brand">⚽ claude-ball <span class="muted">coach</span></div>
-      <div id="scoreline" class="scoreline">
-        <span class="home" id="homeName">you</span>
-        <span class="score" id="score">0 – 0</span>
-        <span class="away" id="awayName">opponent</span>
-      </div>
-      <div id="conn" class="conn">connecting…</div>
-    </header>
+    <div class="app">
+      <!-- ── Scoreboard ─────────────────────────────────────────────── -->
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">⚽</span>
+          <span class="brand-name">claude<span class="dot">·</span>ball</span>
+          <span class="brand-sub">coach</span>
+        </div>
 
-    <main>
-      <section class="stage">
-        <div id="tag" class="tag">current</div>
-        <canvas id="pitch" width="1050" height="680"></canvas>
-        <div class="playback">
-          <button id="playpause">⏸</button>
-          <input id="scrub" type="range" min="0" max="0" value="0" />
-          <span id="time" class="muted">0.0s</span>
-          <select id="speed">
-            <option value="0.5">0.5×</option>
-            <option value="1" selected>1×</option>
-            <option value="2">2×</option>
-            <option value="4">4×</option>
-          </select>
-          <span id="possession" class="pill">loose ball</span>
+        <div class="scoreboard">
+          <span class="sb-team home"><span class="sb-dot"></span><span id="homeName">you</span></span>
+          <span class="sb-core"><b id="scoreHome">0</b><i>:</i><b id="scoreAway">0</b></span>
+          <span class="sb-team away"><span id="awayName">opponent</span><span class="sb-dot"></span></span>
+        </div>
+
+        <div class="topbar-right">
+          <div class="clock"><span id="matchClock">0:00</span><em id="phaseTag">kickoff</em></div>
+          <span id="buildTag" class="build-tag">current</span>
+          <span id="conn" class="conn">connecting…</span>
+        </div>
+      </header>
+
+      <!-- ── Live telemetry HUD ─────────────────────────────────────── -->
+      <section class="hud">
+        <div class="hud-cell poss">
+          <span class="hud-label">possession</span>
+          <div class="poss-bar"><div class="poss-home" id="possHome"></div><div class="poss-away" id="possAway"></div></div>
+          <div class="hud-vs sm"><span class="c-home" id="possHomeNum">50%</span><span class="c-away" id="possAwayNum">50%</span></div>
+        </div>
+        <div class="hud-cell">
+          <span class="hud-label">shots</span>
+          <div class="hud-vs"><b class="c-home" id="shotsHome">0</b><b class="c-away" id="shotsAway">0</b></div>
+        </div>
+        <div class="hud-cell">
+          <span class="hud-label">passes <em id="accHome" class="c-home">—</em>/<em id="accAway" class="c-away">—</em></span>
+          <div class="hud-vs"><b class="c-home" id="passHome">0</b><b class="c-away" id="passAway">0</b></div>
+        </div>
+        <div class="hud-cell">
+          <span class="hud-label">final third</span>
+          <div class="hud-vs"><b class="c-home" id="thirdHome">0%</b><b class="c-away" id="thirdAway">0%</b></div>
+        </div>
+        <div class="hud-cell mom">
+          <span class="hud-label">momentum</span>
+          <div class="mom-track"><span class="mom-zero"></span><span class="mom-fill" id="momFill"></span></div>
+        </div>
+        <div class="hud-cell">
+          <span class="hud-label">work rate</span>
+          <div class="hud-vs"><b class="c-home" id="distHome">0</b><b class="c-away" id="distAway">0</b></div>
         </div>
       </section>
 
-      <aside class="panel">
-        <div class="card">
-          <h2>Match</h2>
-          <label class="row">
-            <span>Opponent</span>
-            <select id="opponent"></select>
-          </label>
-          <label class="row">
-            <span>Seed</span>
-            <span class="seedctl">
-              <input id="seed" type="number" min="1" value="1" />
-              <button id="randomSeed" title="Random game (new seed)">🎲</button>
-            </span>
-          </label>
-          <button id="rerun" class="primary">Re-run match</button>
-        </div>
+      <!-- ── Stage + controls ───────────────────────────────────────── -->
+      <main class="stage-row">
+        <section class="pitch-wrap">
+          <div class="pitch-box">
+            <div id="goalFlash" class="goal-flash"></div>
+            <canvas id="pitch" width="1050" height="680"></canvas>
+            <div id="possession" class="poss-tab">loose ball</div>
+          </div>
 
-        <div class="card">
-          <div class="card-head">
-            <h2>Control panel</h2>
-            <div class="card-actions">
-              <button id="resetParams" class="ghost" title="Discard unsaved changes; revert to the last saved values">Reset to saved</button>
-              <button id="saveParams" class="primary">Save + commit</button>
+          <div class="transport">
+            <button id="restart" class="t-btn" title="Jump to kickoff">⏮</button>
+            <button id="playpause" class="t-btn play" title="Play / pause (space)">❚❚</button>
+            <div class="tl">
+              <div class="tl-track">
+                <div class="tl-fill" id="tlFill"></div>
+                <div class="tl-markers" id="tlMarkers"></div>
+                <input id="scrub" type="range" min="0" max="0" value="0" />
+              </div>
+            </div>
+            <span class="tl-time"><span id="time">0:00</span> <span class="muted" id="dur">/ 1:30</span></span>
+            <div class="speed" id="speedSeg">
+              <button data-speed="0.5">½×</button>
+              <button data-speed="1" class="on">1×</button>
+              <button data-speed="2">2×</button>
+              <button data-speed="4">4×</button>
             </div>
           </div>
-          <p class="muted small panel-intro">Turn the knobs your assistant coded. Changes re-run instantly.</p>
-          <div id="params"></div>
-        </div>
+        </section>
 
-        <div class="card">
-          <h2>Versions</h2>
-          <p class="muted small">Each commit touching your brain. Run an old one, or roll back.</p>
-          <ul id="versions" class="versions"></ul>
-        </div>
+        <aside class="rail">
+          <div class="card opp-card">
+            <div class="opp-bar">
+              <button class="opp-toggle" id="oppToggle" title="Pick opponent">
+                <span class="opp-vs">vs</span>
+                <span class="opp-cur" id="oppCur">opponent</span>
+                <span class="chev">▾</span>
+              </button>
+              <div class="opp-bar-actions">
+                <button id="randomSeed" class="icon-btn" title="Random game (new seed)">🎲</button>
+                <button id="rerun" class="icon-btn rerun" title="Re-run match">↻</button>
+              </div>
+            </div>
+            <div class="opp-body hidden" id="oppBody">
+              <label class="seed-row"><span class="seed-l">seed</span><input id="seed" type="number" min="1" value="1" /></label>
+              <div id="opponents" class="opp-grid"></div>
+            </div>
+          </div>
 
-        <details class="card tips">
-          <summary>Coaching tips</summary>
-          <p class="muted small">Design in phases - decide which phase you're in, then give each player a job. You describe it; your assistant codes it.</p>
-          <ul class="tiplist">
-            <li><b>Kickoff:</b> play the ball back - pick the taker and a safe outlet.</li>
-            <li><b>In possession:</b> the ball-carrier dribbles / passes / shoots; others spread out and offer lanes.</li>
-            <li><b>Out of possession:</b> press or contain; mark their danger man, guard your goal.</li>
-            <li><b>Loose ball:</b> decide who chases and who holds shape.</li>
-            <li><b>Shooting:</b> only when it's on - close, good angle, clear lane.</li>
-            <li><b>Tune knobs, change one thing, commit.</b> Roll back from Versions if it got worse.</li>
-          </ul>
-        </details>
-      </aside>
-    </main>
+          <div class="card grow">
+            <div class="card-head">
+              <h2>Control panel <span id="dirtyDot" class="dirty-dot hidden" title="Unsaved changes"></span></h2>
+              <div class="card-actions">
+                <button id="resetParams" class="btn-ghost" title="Revert to last saved values">Reset</button>
+                <button id="saveParams" class="btn-primary">Save</button>
+              </div>
+            </div>
+            <div id="params" class="knobs"></div>
+          </div>
+
+          <div class="card metrics-card">
+            <div class="card-head"><h2>Your metrics</h2><span class="ym-id">#yourMetrics</span></div>
+            <div id="yourMetrics" class="ymetrics"></div>
+          </div>
+
+          <details class="card versions-card">
+            <summary>Versions</summary>
+            <ul id="versions" class="versions"></ul>
+          </details>
+        </aside>
+      </main>
+    </div>
 
     <div id="error" class="error hidden"></div>
     <script type="module" src="./app.js"></script>

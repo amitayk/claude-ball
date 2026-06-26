@@ -1,5 +1,8 @@
-// Coach workbench client. Talks to the dev server over SSE (/events) and
-// POST /cmd. No build step.
+// claude-ball · coach — client. Talks to the dev server over SSE (/events) and
+// POST /cmd. No build step. The pitch renderer is the original (the coach liked
+// it); everything around it is the new cockpit — live telemetry derived here
+// from the replay frames, so version previews get the same dashboard.
+
 const $ = (id) => document.getElementById(id);
 const canvas = $("pitch");
 const ctx = canvas.getContext("2d");
@@ -8,81 +11,90 @@ const COLORS = { home: "#4f9dff", away: "#ffd24a", ball: "#fff", line: "rgba(255
 
 let replay = null;
 let meta = null;
+let timeline = [];
+let goals = [];
 let frameIdx = 0;
 let playing = true;
+let speed = 1;
 let acc = 0;
 let last = performance.now();
 let paramSpec = {};
 let paramValues = {};
-// Which side the local coach controls ("home" | "away" | null). Only used to
-// annotate "(you)"; nothing about left/right/own-goal is tied to it, so a PvP
-// spectator (you = null) renders the same labels minus the marker.
+let savedValues = {};
+let dirtyPending = false;
 let youSide = null;
-// transient visual effects (collisions, pass/shoot flashes); aged in real time
 let effects = [];
+let shownScore = { home: 0, away: 0 };
+let metricsFrames = []; // per-frame custom metrics reported by the brain
+let hasMetrics = false;
+let lastMetricsRender = "";
 
-// ── commands ────────────────────────────────────────────────────────────────
+// ── commands ──────────────────────────────────────────────────────────────
 async function post(cmd) {
-  await fetch("/cmd", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(cmd),
-  });
+  await fetch("/cmd", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cmd) });
 }
 
-// ── SSE ───────────────────────────────────────────────────────────────────────
+// ── SSE ─────────────────────────────────────────────────────────────────────
 const es = new EventSource("/events");
-es.onopen = () => {
-  $("conn").textContent = "● live";
-  $("conn").classList.add("ok");
-};
-es.onerror = () => {
-  $("conn").textContent = "○ reconnecting";
-  $("conn").classList.remove("ok");
-};
+es.onopen = () => { $("conn").textContent = "live"; $("conn").classList.add("ok"); };
+es.onerror = () => { $("conn").textContent = "reconnecting"; $("conn").classList.remove("ok"); };
 es.addEventListener("status", (e) => applyStatus(JSON.parse(e.data)));
 es.addEventListener("params", (e) => applyParams(JSON.parse(e.data)));
 es.addEventListener("versions", (e) => renderVersions(JSON.parse(e.data)));
 es.addEventListener("replay", (e) => applyReplay(JSON.parse(e.data)));
 es.addEventListener("error", (e) => showError(JSON.parse(e.data).message));
 
-// ── status ──────────────────────────────────────────────────────────────────
+// ── status / opponent picker ─────────────────────────────────────────────
+let oppKey = "";
 function applyStatus(s) {
-  $("homeName").textContent = `${s.you} (you)`;
+  $("homeName").textContent = s.you;
   $("awayName").textContent = s.opponent;
-  if (s.score) $("score").textContent = `${s.score.home} – ${s.score.away}`;
+  $("oppCur").textContent = s.opponentRef;
   $("seed").value = s.seed;
-
-  const sel = $("opponent");
-  if (sel.dataset.list !== JSON.stringify(s.opponents)) {
-    sel.dataset.list = JSON.stringify(s.opponents);
-    sel.innerHTML = "";
-    for (const opp of s.opponents) {
-      const o = document.createElement("option");
-      o.value = opp.name;
-      const tag = opp.skill == null ? "mirror" : `skill ${opp.skill}`;
-      o.textContent = `${opp.name} · ${tag} — ${opp.blurb}`;
-      o.title = opp.blurb;
-      sel.appendChild(o);
-    }
-  }
-  sel.value = s.opponentRef;
-  if (s.error) showError(s.error);
-  else hideError();
+  const key = JSON.stringify(s.opponents) + "::" + s.opponentRef;
+  if (oppKey !== key) { oppKey = key; renderOpponents(s.opponents, s.opponentRef); }
+  if (s.error) showError(s.error); else hideError();
 }
 
-// ── params control panel ───────────────────────────────────────────────────────
+function renderOpponents(opponents, current) {
+  const host = $("opponents");
+  host.innerHTML = "";
+  for (const opp of opponents) {
+    const mirror = opp.skill == null;
+    const el = document.createElement("button");
+    el.className = "opp" + (opp.name === current ? " on" : "") + (mirror ? " mirror" : "");
+    const skill = mirror
+      ? `<span class="skill-num">↺</span>`
+      : `<span class="skill-bar"><span class="skill-fill" style="width:${opp.skill}%"></span></span><span class="skill-num">${opp.skill}</span>`;
+    el.innerHTML = `
+      <span class="opp-name">${escapeHtml(opp.name)}</span>
+      <span class="opp-skill">${skill}</span>
+      <span class="opp-blurb">${escapeHtml(opp.blurb)}</span>`;
+    el.addEventListener("click", () => {
+      host.querySelectorAll(".opp").forEach((o) => o.classList.remove("on"));
+      el.classList.add("on");
+      $("oppCur").textContent = opp.name;
+      setOppOpen(false); // collapse back to the compact bar after picking
+      post({ type: "setOpponent", name: opp.name });
+    });
+    host.appendChild(el);
+  }
+}
+
+// ── knobs ───────────────────────────────────────────────────────────────────
 function applyParams(p) {
   paramSpec = p.spec;
   paramValues = p.values;
-  renderParams();
+  if (!dirtyPending) savedValues = { ...p.values };
+  renderKnobs();
+  updateDirty();
 }
 
-function renderParams() {
+function renderKnobs() {
   const host = $("params");
   const keys = Object.keys(paramSpec);
   if (!keys.length) {
-    host.innerHTML = `<p class="muted small">This brain declares no params. Ask your assistant to expose a value as a param to tune it here.</p>`;
+    host.innerHTML = `<p class="hint">No knobs yet. Ask your assistant to expose a value as a <code>param</code> to tune it here.</p>`;
     return;
   }
   host.innerHTML = "";
@@ -90,79 +102,199 @@ function renderParams() {
     const spec = paramSpec[key];
     const val = paramValues[key] ?? spec.default;
     const wrap = document.createElement("div");
-    wrap.className = "param";
+    wrap.className = "knob";
     wrap.innerHTML = `
-      <div class="plabel"><span>${spec.label ?? key}</span><span class="pval" id="pv-${key}">${fmt(val)}</span></div>
+      <div class="knob-top"><span class="knob-label">${escapeHtml(spec.label ?? key)}</span><span class="knob-val" id="pv-${key}">${fmt(val)}</span></div>
       <input type="range" id="pr-${key}" min="${spec.min}" max="${spec.max}" step="${spec.step}" value="${val}" />
-      <div class="phelp">${spec.help ?? ""}</div>`;
+      ${spec.help ? `<div class="knob-help">${escapeHtml(spec.help)}</div>` : ""}`;
     host.appendChild(wrap);
     const slider = wrap.querySelector("input");
+    setFill(slider, spec);
+    // While dragging: update the readout live, but DON'T re-run — re-running on
+    // every tick resets playback and makes the slider feel shaky.
     slider.addEventListener("input", () => {
       const v = Number(slider.value);
       paramValues[key] = v;
       $(`pv-${key}`).textContent = fmt(v);
+      setFill(slider, spec);
+      updateDirty();
+    });
+    // On release (mouseup / keyup / touchend): push once and re-run the match.
+    slider.addEventListener("change", () => {
+      paramValues[key] = Number(slider.value);
       scheduleParamPush();
     });
   }
 }
 
-const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(2));
+function setFill(slider, spec) {
+  const pct = ((Number(slider.value) - spec.min) / (spec.max - spec.min)) * 100;
+  slider.style.setProperty("--fill", `${pct}%`);
+}
+function updateDirty() {
+  const dirty = Object.keys(paramValues).some((k) => paramValues[k] !== savedValues[k]);
+  $("dirtyDot").classList.toggle("hidden", !dirty);
+}
+const fmt = (v) => (Number.isInteger(v) ? String(v) : Number(v).toFixed(2));
 
 let pushTimer = null;
 function scheduleParamPush() {
+  dirtyPending = true;
   if (pushTimer) clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => post({ type: "setParams", values: paramValues }), 120);
+  pushTimer = setTimeout(() => { post({ type: "setParams", values: paramValues }); dirtyPending = false; }, 110);
 }
 
-// ── versions ──────────────────────────────────────────────────────────────────
+// ── versions ─────────────────────────────────────────────────────────────────
 function renderVersions(versions) {
   const ul = $("versions");
   ul.innerHTML = "";
-  if (!versions.length) {
-    ul.innerHTML = `<li class="muted small">No commits yet. Commit your brain to build a history.</li>`;
-    return;
-  }
+  if (!versions.length) { ul.innerHTML = `<li class="hint">No commits yet. Commit your brain to build a history.</li>`; return; }
   for (const v of versions) {
     const li = document.createElement("li");
-    const when = new Date(v.ts * 1000).toLocaleString();
+    const when = new Date(v.ts * 1000).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
     li.innerHTML = `
-      <div class="vmeta"><span class="vsubject">${escape(v.subject)}</span><span class="vtime">${when}</span></div>
-      <div class="sha">${v.sha.slice(0, 7)}</div>
-      <div class="vactions">
-        <button data-run="${v.sha}">▶ Run this</button>
-        <button data-rollback="${v.sha}" class="ghost">↩ Roll back</button>
-      </div>`;
+      <div class="vmeta"><span class="vsubject">${escapeHtml(v.subject)}</span><span class="vtime">${when}</span></div>
+      <div class="vsha">${v.sha.slice(0, 7)}</div>
+      <div class="vactions"><button class="run" data-run="${v.sha}">▶ Run</button><button data-rollback="${v.sha}">↩ Roll back</button></div>`;
     ul.appendChild(li);
   }
-  ul.querySelectorAll("[data-run]").forEach((b) =>
-    b.addEventListener("click", () => post({ type: "previewVersion", sha: b.dataset.run })),
-  );
+  ul.querySelectorAll("[data-run]").forEach((b) => b.addEventListener("click", () => post({ type: "previewVersion", sha: b.dataset.run })));
   ul.querySelectorAll("[data-rollback]").forEach((b) =>
-    b.addEventListener("click", () => {
-      if (confirm("Roll your brain back to this version in the working tree?"))
-        post({ type: "rollback", sha: b.dataset.rollback });
-    }),
+    b.addEventListener("click", () => { if (confirm("Roll your brain back to this version in the working tree?")) post({ type: "rollback", sha: b.dataset.rollback }); }),
   );
 }
+const escapeHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
-const escape = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
-
-// ── replay playback ─────────────────────────────────────────────────────────────
+// ── replay intake ────────────────────────────────────────────────────────────
 function applyReplay(payload) {
   replay = payload.replay;
   meta = replay.meta;
   youSide = payload.you ?? null;
   canvas.width = meta.field.width;
   canvas.height = meta.field.height;
+
+  timeline = buildTimeline(replay);
+  goals = findGoals(replay);
+  renderMarkers();
+
+  metricsFrames = replay.homeMetrics ?? [];
+  hasMetrics = metricsFrames.some(Boolean);
+  lastMetricsRender = "";
+
   $("scrub").max = String(replay.frames.length - 1);
-  $("tag").textContent = payload.tag ?? "current";
-  $("score").textContent = `${replay.score.home} – ${replay.score.away}`;
-  frameIdx = 0;
-  playing = true;
-  effects = [];
-  $("playpause").textContent = "⏸";
+  $("dur").textContent = "/ " + clock((replay.frames.length - 1) * meta.dt);
+
+  const tag = $("buildTag");
+  tag.textContent = payload.tag ?? "current";
+  tag.classList.remove("flash"); void tag.offsetWidth; tag.classList.add("flash");
+
+  frameIdx = 0; playing = true; effects = [];
+  shownScore = { home: 0, away: 0 };
+  setScore(0, 0, false);
+  $("playpause").textContent = "❚❚";
 }
 
+// ── telemetry engine (derived from frames) ────────────────────────────────────
+function buildTimeline(rep) {
+  const W = rep.meta.field.width;
+  const frames = rep.frames;
+  const thirdHomeX = W * (2 / 3); // home attacks +x
+  const thirdAwayX = W / 3;
+  const out = new Array(frames.length);
+  const a = { possH: 0, possA: 0, shotsH: 0, shotsA: 0, passH: 0, passA: 0, okH: 0, okA: 0, thirdH: 0, thirdA: 0, distH: 0, distA: 0 };
+  let inflight = null, mom = 0, prev = frames[0];
+
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i], b = f.ball;
+    if (b.mode === "controlled") { if (b.side === "home") a.possH++; else if (b.side === "away") a.possA++; }
+    if (b.x >= thirdHomeX) a.thirdH++; else if (b.x <= thirdAwayX) a.thirdA++;
+
+    if (i > 0) {
+      const pm = prev.ball.mode;
+      if ((b.mode === "pass" || b.mode === "shot") && pm === "controlled") {
+        const s = prev.ball.side;
+        if (b.mode === "shot") { if (s === "home") a.shotsH++; else if (s === "away") a.shotsA++; }
+        else { if (s === "home") a.passH++; else if (s === "away") a.passA++; }
+        inflight = { type: b.mode, side: s };
+      } else if (b.mode === "controlled" && pm !== "controlled" && inflight) {
+        if (inflight.type === "pass" && b.side === inflight.side) { if (b.side === "home") a.okH++; else if (b.side === "away") a.okA++; }
+        inflight = null;
+      }
+      for (const p of f.players) {
+        const pp = prev.players.find((q) => q.id === p.id);
+        if (!pp) continue;
+        const d = Math.hypot(p.x - pp.x, p.y - pp.y);
+        if (p.side === "home") a.distH += d; else a.distA += d;
+      }
+    }
+
+    const posFav = b.mode === "controlled" ? (b.side === "home" ? 1 : b.side === "away" ? -1 : 0) : 0;
+    const terrFav = (b.x / W - 0.5) * 2;
+    mom += (0.6 * posFav + 0.4 * terrFav - mom) * 0.05;
+
+    out[i] = { ...a, mom };
+    prev = f;
+  }
+  return out;
+}
+
+function findGoals(rep) {
+  const g = [];
+  for (let i = 1; i < rep.frames.length; i++) {
+    const x = rep.frames[i - 1].score, y = rep.frames[i].score;
+    if (y.home > x.home) g.push({ frame: i, side: "home" });
+    if (y.away > x.away) g.push({ frame: i, side: "away" });
+  }
+  return g;
+}
+
+function renderMarkers() {
+  const host = $("tlMarkers");
+  host.innerHTML = "";
+  const max = replay.frames.length - 1 || 1;
+  for (const g of goals) {
+    const m = document.createElement("div");
+    m.className = "tl-marker" + (g.side === "away" ? " away" : "");
+    m.style.left = (g.frame / max) * 100 + "%";
+    m.title = `goal — ${teamLabel(g.side)} @ ${clock(g.frame * meta.dt)}`;
+    host.appendChild(m);
+  }
+}
+
+function updateTelemetry(i) {
+  const t = timeline[i];
+  if (!t) return;
+  const pt = t.possH + t.possA || 1;
+  const ph = Math.round((t.possH / pt) * 100);
+  $("possHome").style.width = ph + "%";
+  $("possAway").style.width = 100 - ph + "%";
+  $("possHomeNum").textContent = ph + "%";
+  $("possAwayNum").textContent = 100 - ph + "%";
+
+  $("shotsHome").textContent = t.shotsH;
+  $("shotsAway").textContent = t.shotsA;
+  $("passHome").textContent = t.passH;
+  $("passAway").textContent = t.passA;
+  $("accHome").textContent = t.passH ? Math.round((t.okH / t.passH) * 100) + "%" : "—";
+  $("accAway").textContent = t.passA ? Math.round((t.okA / t.passA) * 100) + "%" : "—";
+
+  const tt = t.thirdH + t.thirdA || 1;
+  $("thirdHome").textContent = Math.round((t.thirdH / tt) * 100) + "%";
+  $("thirdAway").textContent = Math.round((t.thirdA / tt) * 100) + "%";
+  $("distHome").textContent = compact(t.distH);
+  $("distAway").textContent = compact(t.distA);
+
+  const m = Math.max(-1, Math.min(1, t.mom));
+  const fill = $("momFill");
+  if (m >= 0) { fill.style.right = "50%"; fill.style.left = "auto"; fill.style.background = COLORS.home; }
+  else { fill.style.left = "50%"; fill.style.right = "auto"; fill.style.background = COLORS.away; }
+  fill.style.width = Math.abs(m) * 50 + "%";
+}
+const compact = (n) => (n >= 1000 ? (n / 1000).toFixed(1) + "k" : Math.round(n).toString());
+
+// ════════════════════════════════════════════════════════════════════════════
+//  PITCH RENDERING — kept verbatim from the original coach view.
+// ════════════════════════════════════════════════════════════════════════════
 function drawAxis(W, H) {
   ctx.strokeStyle = COLORS.line;
   ctx.fillStyle = "rgba(255,255,255,0.35)";
@@ -206,21 +338,14 @@ function drawPitch() {
   drawLabels(W, H, goalHeight);
 }
 
-// Display label for a side: its team name, plus a "(you)" marker only when the
-// local coach controls that side. Side-agnostic — no "your/enemy" baked in.
 function teamLabel(side) {
   const name = meta?.teams?.[side] ?? side;
   return side === youSide ? `${name} (you)` : name;
 }
 
-// Field labels reference each TEAM (by name + the goal it defends + the way it
-// attacks), never "your/enemy". The home slot defends the x=0 goal and attacks
-// toward +x; the away slot is the mirror. LEFT/RIGHT/TOP/BOTTOM below are
-// coordinate facts about the pitch, not team ownership.
 function drawLabels(W, H, goalHeight) {
   const gTop = (H - goalHeight) / 2;
   ctx.save();
-  // each goal tinted in the colour of the team that DEFENDS it
   ctx.globalAlpha = 0.16;
   ctx.fillStyle = COLORS.home; ctx.fillRect(4, gTop, 22, goalHeight);
   ctx.fillStyle = COLORS.away; ctx.fillRect(W - 26, gTop, 22, goalHeight);
@@ -252,188 +377,175 @@ function drawFrame(f) {
     ctx.fillStyle = COLORS[p.side];
     ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
     ctx.fill();
-    if (p.ball) {
-      ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke();
-    }
+    if (p.ball) { ctx.lineWidth = 3; ctx.strokeStyle = "#fff"; ctx.stroke(); }
   }
   if (f.phase === "kickoff") drawKickoff(f);
   drawBall(f);
   drawEffects(f);
-
-  $("time").textContent = (f.t * meta.dt).toFixed(1) + "s";
-  $("scrub").value = String(frameIdx);
-  updatePossession(f);
+  syncPlaybackUI(f);
 }
 
-// Emphasise the centre circle in the kicking team's colour and badge the phase.
 function drawKickoff(f) {
   const W = meta.field.width;
-  const cx = W / 2;
-  const cy = meta.field.height / 2;
+  const cx = W / 2, cy = meta.field.height / 2;
   const tint = COLORS[f.kickoffSide];
   ctx.save();
-  ctx.strokeStyle = tint;
-  ctx.lineWidth = 3;
-  ctx.globalAlpha = 0.9;
-  ctx.beginPath();
-  ctx.arc(cx, cy, meta.field.centerRadius ?? 70, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.strokeStyle = tint; ctx.lineWidth = 3; ctx.globalAlpha = 0.9;
+  ctx.beginPath(); ctx.arc(cx, cy, meta.field.centerRadius ?? 70, 0, Math.PI * 2); ctx.stroke();
   ctx.globalAlpha = 1;
-  ctx.fillStyle = tint;
-  ctx.font = "bold 14px ui-monospace, monospace";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "bottom";
+  ctx.fillStyle = tint; ctx.font = "bold 14px ui-monospace, monospace";
+  ctx.textAlign = "center"; ctx.textBaseline = "bottom";
   ctx.fillText(`KICKOFF — ${teamLabel(f.kickoffSide)}`, cx, cy - (meta.field.centerRadius ?? 70) - 8);
   ctx.restore();
 }
 
-// Render the ball according to its mode: a team-coloured motion trail + tinted
-// outline while a pass/shot is in flight; a neutral dashed ring when the ball
-// is genuinely loose (contestable); plain when a player controls it.
 function drawBall(f) {
   const { mode, side } = f.ball;
   const tint = side ? COLORS[side] : null;
   const inFlight = mode === "pass" || mode === "shot";
-
-  // motion trail from the previous frames toward the current position
   const TRAIL = inFlight ? 12 : 6;
   const start = Math.max(1, frameIdx - TRAIL);
   ctx.lineCap = "round";
   for (let j = start; j <= frameIdx; j++) {
-    const a = replay.frames[j - 1].ball;
-    const b = replay.frames[j].ball;
+    const a = replay.frames[j - 1].ball, b = replay.frames[j].ball;
     const t = (j - start + 1) / (frameIdx - start + 1);
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
     ctx.strokeStyle = inFlight ? tint ?? "#fff" : "rgba(255,255,255,1)";
     ctx.globalAlpha = (inFlight ? 0.55 : 0.16) * t;
     ctx.lineWidth = inFlight ? (mode === "shot" ? 5 : 4) : 2;
     ctx.stroke();
   }
   ctx.globalAlpha = 1;
-
-  ctx.beginPath();
-  ctx.fillStyle = COLORS.ball;
-  ctx.arc(f.ball.x, f.ball.y, 8, 0, Math.PI * 2);
-  ctx.fill();
-  if (inFlight && tint) {
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = tint;
-    ctx.stroke();
-  } else if (mode === "loose") {
-    ctx.setLineDash([3, 3]);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255,255,255,0.7)";
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
+  ctx.beginPath(); ctx.fillStyle = COLORS.ball;
+  ctx.arc(f.ball.x, f.ball.y, 8, 0, Math.PI * 2); ctx.fill();
+  if (inFlight && tint) { ctx.lineWidth = 3; ctx.strokeStyle = tint; ctx.stroke(); }
+  else if (mode === "loose") { ctx.setLineDash([3, 3]); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.stroke(); ctx.setLineDash([]); }
 }
 
-// ── effects ───────────────────────────────────────────────────────────────────
-const COLLIDE_DIST = 26; // ~2 × player radius (+ a little)
-
-const PLAYER_R = 12;
-
-// Compare two adjacent frames and spawn effects for events that just happened.
-// Effects are anchored to a player (by id) so they pulse softly around that
-// player's circle and follow it.
+// ── effects ──────────────────────────────────────────────────────────────────
+const COLLIDE_DIST = 26, PLAYER_R = 12;
 function detectEvents(prev, cur) {
-  // Kick: the ball goes from controlled to a pass/shot this tick. The kicker is
-  // whoever controlled the ball on the previous frame.
   if ((cur.ball.mode === "pass" || cur.ball.mode === "shot") && prev.ball.mode === "controlled") {
     const kicker = prev.players.find((p) => p.ball);
-    spawnEffect({
-      type: cur.ball.mode,
-      playerId: kicker ? kicker.id : null,
-      color: cur.ball.side ? COLORS[cur.ball.side] : "#ffffff",
-    });
+    spawnEffect({ type: cur.ball.mode, playerId: kicker ? kicker.id : null, color: cur.ball.side ? COLORS[cur.ball.side] : "#fff" });
   }
-  // Collision: opposing players that just came into contact — a soft pulse
-  // around each player, in its own team colour.
-  for (const a of cur.players) {
-    for (const b of cur.players) {
-      if (a.side === b.side || a.id >= b.id) continue;
-      if (Math.hypot(a.x - b.x, a.y - b.y) >= COLLIDE_DIST) continue;
-      const pa = prev.players.find((p) => p.id === a.id);
-      const pb = prev.players.find((p) => p.id === b.id);
-      const wasApart = !pa || !pb || Math.hypot(pa.x - pb.x, pa.y - pb.y) >= COLLIDE_DIST;
-      if (wasApart) {
-        spawnEffect({ type: "collision", playerId: a.id, color: COLORS[a.side] });
-        spawnEffect({ type: "collision", playerId: b.id, color: COLORS[b.side] });
-      }
-    }
+  for (const a of cur.players) for (const b of cur.players) {
+    if (a.side === b.side || a.id >= b.id) continue;
+    if (Math.hypot(a.x - b.x, a.y - b.y) >= COLLIDE_DIST) continue;
+    const pa = prev.players.find((p) => p.id === a.id), pb = prev.players.find((p) => p.id === b.id);
+    const wasApart = !pa || !pb || Math.hypot(pa.x - pb.x, pa.y - pb.y) >= COLLIDE_DIST;
+    if (wasApart) { spawnEffect({ type: "collision", playerId: a.id, color: COLORS[a.side] }); spawnEffect({ type: "collision", playerId: b.id, color: COLORS[b.side] }); }
   }
 }
-
-function spawnEffect(e) {
-  const life = e.type === "shot" ? 460 : e.type === "pass" ? 340 : 260;
-  effects.push({ ...e, age: 0, life });
-  if (effects.length > 80) effects.shift();
-}
-
-function ageEffects(dtRealMs) {
-  for (const e of effects) e.age += dtRealMs;
-  effects = effects.filter((e) => e.age < e.life);
-}
-
-// Soft halo around a player's circle: a glowing ring that grows a little and
-// fades. Shots glow hardest, passes softer, collisions softest/smallest.
+function spawnEffect(e) { const life = e.type === "shot" ? 460 : e.type === "pass" ? 340 : 260; effects.push({ ...e, age: 0, life }); if (effects.length > 80) effects.shift(); }
+function ageEffects(dtMs) { for (const e of effects) e.age += dtMs; effects = effects.filter((e) => e.age < e.life); }
 function drawEffects(frame) {
   for (const e of effects) {
     const p = e.playerId != null ? frame.players.find((pl) => pl.id === e.playerId) : null;
     if (!p) continue;
-    const t = e.age / e.life; // 0 → 1
-    const fade = 1 - t;
-    const shot = e.type === "shot";
-    const collision = e.type === "collision";
-    const grow = shot ? 16 : collision ? 6 : 11; // how far past the circle it swells
+    const t = e.age / e.life, fade = 1 - t;
+    const shot = e.type === "shot", coll = e.type === "collision";
+    const grow = shot ? 16 : coll ? 6 : 11;
     const r = PLAYER_R + 2 + t * grow;
-    const alpha = fade * (shot ? 0.6 : collision ? 0.4 : 0.45);
-
     ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = e.color;
-    ctx.lineWidth = shot ? 3 : 2;
-    ctx.shadowColor = e.color; // the soft glow
-    ctx.shadowBlur = shot ? 16 : collision ? 7 : 11;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.globalAlpha = fade * (shot ? 0.6 : coll ? 0.4 : 0.45);
+    ctx.strokeStyle = e.color; ctx.lineWidth = shot ? 3 : 2;
+    ctx.shadowColor = e.color; ctx.shadowBlur = shot ? 16 : coll ? 7 : 11;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.stroke();
     ctx.restore();
   }
+}
+
+// ── playback UI sync ──────────────────────────────────────────────────────────
+function syncPlaybackUI(f) {
+  const max = replay.frames.length - 1 || 1;
+  $("time").textContent = clock(f.t * meta.dt);
+  $("scrub").value = String(frameIdx);
+  $("tlFill").style.width = (frameIdx / max) * 100 + "%";
+
+  if (f.score.home !== shownScore.home || f.score.away !== shownScore.away) {
+    const scored = f.score.home > shownScore.home ? "home" : "away";
+    setScore(f.score.home, f.score.away, true, scored);
+    fireGoal(scored);
+    shownScore = { ...f.score };
+  }
+
+  $("matchClock").textContent = clock(f.t * meta.dt);
+  $("phaseTag").textContent = f.phase === "kickoff" ? "kick-off" : "open play";
+  updatePossession(f);
+  updateTelemetry(frameIdx);
+  renderMetrics(frameIdx);
+}
+
+// ── "Your metrics": whatever the brain reports via reportMetrics() ────────────
+function renderMetrics(i) {
+  const host = $("yourMetrics");
+  if (!hasMetrics) {
+    if (lastMetricsRender !== "empty") {
+      lastMetricsRender = "empty";
+      host.innerHTML = `<div class="ym-empty">
+        Show your brain's own live state here. Tell your assistant
+        <em>"report my brain's state to the coach"</em> — it'll call
+        <code>reportMetrics({ … })</code> inside <code>decide()</code>, e.g.
+        <code>reportMetrics({ phase: state, taker: id })</code>, and the values
+        stream into this panel in sync with playback.</div>`;
+    }
+    return;
+  }
+  // show the most recent report at or before the current frame
+  let m = null;
+  for (let j = i; j >= 0; j--) { if (metricsFrames[j]) { m = metricsFrames[j]; break; } }
+  const key = m ? JSON.stringify(m) : "none";
+  if (key === lastMetricsRender) return;
+  lastMetricsRender = key;
+  if (!m) { host.innerHTML = `<div class="ym-empty muted">waiting for the first report…</div>`; return; }
+  host.innerHTML = Object.entries(m)
+    .map(([k, v]) => `<div class="ym-row"><span class="ym-k">${escapeHtml(k)}</span><span class="ym-v">${escapeHtml(String(v))}</span></div>`)
+    .join("");
+}
+
+function setScore(h, a, pulse, side) {
+  $("scoreHome").textContent = h;
+  $("scoreAway").textContent = a;
+  if (pulse && side) { const el = $(side === "home" ? "scoreHome" : "scoreAway"); el.classList.remove("pulse"); void el.offsetWidth; el.classList.add("pulse"); }
+}
+function fireGoal(side) {
+  const el = $("goalFlash");
+  el.textContent = "GOAL";
+  el.style.color = COLORS[side];
+  el.style.textShadow = `0 0 28px ${COLORS[side]}`;
+  el.classList.remove("fire"); void el.offsetWidth; el.classList.add("fire");
 }
 
 function updatePossession(f) {
   const poss = $("possession");
   const ball = f.ball;
-  if (f.phase === "kickoff") {
-    poss.textContent = `kickoff — ${teamLabel(f.kickoffSide)}`;
-    poss.style.color = COLORS[f.kickoffSide];
-    return;
-  }
+  if (f.phase === "kickoff") { poss.textContent = `kick-off — ${teamLabel(f.kickoffSide)}`; poss.style.color = COLORS[f.kickoffSide]; return; }
   const who = ball.side ? teamLabel(ball.side) : null;
   const text =
     ball.mode === "controlled" ? `${who} on the ball`
     : ball.mode === "pass" ? `${who} — pass in flight`
-    : ball.mode === "shot" ? `${who} — shot in flight`
+    : ball.mode === "shot" ? `${who} — shot away!`
     : "loose ball";
   poss.textContent = text;
   poss.style.color = ball.side ? COLORS[ball.side] : "var(--muted)";
 }
 
+const clock = (sec) => { const m = Math.floor(sec / 60), s = Math.floor(sec % 60); return `${m}:${String(s).padStart(2, "0")}`; };
+
+// ── loop ──────────────────────────────────────────────────────────────────────
 function loop(now) {
   const dtReal = (now - last) / 1000;
   last = now;
   ageEffects(dtReal * 1000);
   if (playing && replay) {
-    acc += dtReal * Number($("speed").value);
+    acc += dtReal * speed;
     while (acc >= meta.dt) {
       acc -= meta.dt;
       const next = Math.min(frameIdx + 1, replay.frames.length - 1);
       if (next !== frameIdx) detectEvents(replay.frames[frameIdx], replay.frames[next]);
       frameIdx = next;
-      if (frameIdx >= replay.frames.length - 1) playing = false, ($("playpause").textContent = "▶");
+      if (frameIdx >= replay.frames.length - 1) { playing = false; $("playpause").textContent = "▶"; }
     }
   }
   if (replay) drawFrame(replay.frames[frameIdx]);
@@ -442,33 +554,47 @@ function loop(now) {
 requestAnimationFrame(loop);
 
 // ── error toast ────────────────────────────────────────────────────────────────
-function showError(msg) {
-  const el = $("error");
-  el.textContent = "⚠ " + msg;
-  el.classList.remove("hidden");
-}
-function hideError() {
-  $("error").classList.add("hidden");
-}
+function showError(msg) { const el = $("error"); el.textContent = "⚠ " + msg; el.classList.remove("hidden"); }
+function hideError() { $("error").classList.add("hidden"); }
 
 // ── controls ───────────────────────────────────────────────────────────────────
-$("playpause").addEventListener("click", () => {
-  if (frameIdx >= replay.frames.length - 1) frameIdx = 0;
+function togglePlay() {
+  if (!replay) return;
+  if (frameIdx >= replay.frames.length - 1) { frameIdx = 0; shownScore = { home: 0, away: 0 }; }
   playing = !playing;
-  $("playpause").textContent = playing ? "⏸" : "▶";
-});
+  $("playpause").textContent = playing ? "❚❚" : "▶";
+}
+$("playpause").addEventListener("click", togglePlay);
+$("restart").addEventListener("click", () => { frameIdx = 0; acc = 0; shownScore = { home: 0, away: 0 }; effects = []; setScore(0, 0, false); });
 $("scrub").addEventListener("input", () => {
   frameIdx = Number($("scrub").value);
-  playing = false;
-  $("playpause").textContent = "▶";
+  playing = false; $("playpause").textContent = "▶";
+  shownScore = { ...replay.frames[frameIdx].score };
+  setScore(shownScore.home, shownScore.away, false);
 });
-$("opponent").addEventListener("change", () => post({ type: "setOpponent", name: $("opponent").value }));
+$("speedSeg").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  speed = Number(b.dataset.speed);
+  $("speedSeg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+});
+// opponent picker collapse (collapsed by default)
+function setOppOpen(open) {
+  document.querySelector(".opp-card").classList.toggle("open", open);
+  $("oppBody").classList.toggle("hidden", !open);
+}
+$("oppToggle").addEventListener("click", () => setOppOpen($("oppBody").classList.contains("hidden")));
+
 $("seed").addEventListener("change", () => post({ type: "setSeed", seed: Number($("seed").value) }));
-$("randomSeed").addEventListener("click", () => {
-  const s = Math.floor(Math.random() * 1_000_000) + 1;
-  $("seed").value = s;
-  post({ type: "setSeed", seed: s });
-});
+$("randomSeed").addEventListener("click", () => { const s = Math.floor(Math.random() * 1_000_000) + 1; $("seed").value = s; post({ type: "setSeed", seed: s }); });
 $("rerun").addEventListener("click", () => post({ type: "rerun" }));
-$("saveParams").addEventListener("click", () => post({ type: "saveParams" }));
+$("saveParams").addEventListener("click", () => { savedValues = { ...paramValues }; updateDirty(); post({ type: "saveParams" }); });
 $("resetParams").addEventListener("click", () => post({ type: "resetParams" }));
+
+document.addEventListener("keydown", (e) => {
+  // Space toggles play/pause from anywhere on the page, whatever has focus.
+  // preventDefault stops both page scroll and a focused button re-firing.
+  if (e.code === "Space") { e.preventDefault(); togglePlay(); if (e.target.blur) e.target.blur(); return; }
+  if (e.target.tagName === "INPUT") return;
+  if (e.code === "ArrowRight" && replay) { playing = false; $("playpause").textContent = "▶"; frameIdx = Math.min(frameIdx + 1, replay.frames.length - 1); }
+  else if (e.code === "ArrowLeft" && replay) { playing = false; $("playpause").textContent = "▶"; frameIdx = Math.max(frameIdx - 1, 0); }
+});

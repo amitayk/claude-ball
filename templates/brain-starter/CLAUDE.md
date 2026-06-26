@@ -194,6 +194,42 @@ gameplay terms, always with the "Higher = …" direction. Keep the set focused
 (roughly 4–10 knobs that actually change how it plays) rather than exposing every
 constant.
 
+### Live metrics — surface your brain's state in the coach
+
+The coach workbench has a **"Your metrics"** panel (the `#yourMetrics` element).
+Anything the brain reports there streams in live, frame-by-frame, in step with
+replay playback and scrubbing — so the coach can *see* what the brain is
+thinking as the match plays.
+
+Report from inside `decide()` with `reportMetrics()`:
+
+```ts
+import { reportMetrics } from "@claude-ball/brain-api";
+
+decide(view, params) {
+  // ... compute your state ...
+  reportMetrics({
+    phase: state,            // e.g. a state-machine label: "build" | "press" | "recover"
+    taker: takerId,          // which player you picked for a job
+    pressing: underPressure, // a boolean/flag
+    ballX: Math.round(view.ball.pos.x),
+  });
+  // ... return intents ...
+}
+```
+
+Values can be strings, numbers, or booleans; report as many keys as you like.
+It's **diagnostic only** — `reportMetrics` has no effect on the match and is
+ignored outside the coach (CLI, arena, ladder).
+
+**When the coach asks you to make the brain's thinking visible** — "show me what
+state it's in," "why did it pass there," "is it pressing?" — wire the relevant
+internal values into a `reportMetrics({...})` call so they appear in the
+**Your metrics** panel. If the brain runs a state machine, report the current
+state; if it picks a taker/target, report the id; if it has a trigger, report
+the flag. This is mechanical instrumentation (allowed) — you're exposing what
+the code already computes, not inventing tactics.
+
 ## Correctness rules (mechanical — always apply)
 
 - **Side-agnostic**: never hardcode left/right or `home`/`away` (see orientation
