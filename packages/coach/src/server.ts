@@ -21,7 +21,7 @@ const port = Number(process.env.PORT ?? 5177);
 
 // ── live state ───────────────────────────────────────────────────────────────
 let coachBrain: Brain | null = null;
-let opponentName = "chaser";
+let opponentName = "afk-bot";
 let opponentBrain: Brain | null = null;
 let seed = 1;
 let overrides: ParamValues = loadSavedOverrides();

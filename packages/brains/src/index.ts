@@ -1,4 +1,5 @@
 import type { Brain } from "@claude-ball/brain-api";
+import { afk } from "./afk.js";
 import { chaser } from "./chaser.js";
 import { formation } from "./formation.js";
 import { flow } from "./flow.js";
@@ -6,7 +7,7 @@ import { blitz } from "./blitz.js";
 import { possession } from "./possession.js";
 import { maestro } from "./maestro.js";
 
-export { chaser, formation, flow, blitz, possession, maestro };
+export { afk, chaser, formation, flow, blitz, possession, maestro };
 
 export interface CatalogEntry {
   name: string;
@@ -28,6 +29,7 @@ export const catalog: CatalogEntry[] = [
   { name: "formation", brain: formation, skill: 40, blurb: "Holds a 4-player shape; the nearest player presses." },
   { name: "flow", brain: flow, skill: 17, blurb: "Keeper, deep playmaker, two channel runners; passes forward." },
   { name: "possession", brain: possession, skill: 3, blurb: "Keeps the ball, works to the corners, rarely rushes." },
+  { name: "afk-bot", brain: afk, skill: 0, blurb: "Does nothing — stands still and only plays the legal back pass on its own kickoff. A practice dummy." },
 ];
 
 /** name → Brain lookup (used by the runner / coach server). */
