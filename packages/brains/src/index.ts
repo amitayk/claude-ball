@@ -1,5 +1,5 @@
 import type { Brain } from "@claude-ball/brain-api";
-import { afk } from "./afk.js";
+import { afk } from "./afk-bot.js";
 import { chaser } from "./chaser.js";
 import { formation } from "./formation.js";
 import { flow } from "./flow.js";
