@@ -346,11 +346,38 @@ dialog.modal::backdrop { background: rgba(6,9,8,0.62); backdrop-filter: blur(2px
 
 footer { position: relative; z-index: 1; text-align: center; padding: 22px; }
 
+/* Mobile-only elements: hidden on desktop, revealed in the mobile block below. */
+.tag-mobile, .reframe-mobile, .watchcap-mobile { display: none; }
+
+/* "Built on your computer" reframe card (mobile) */
+.reframe { position: relative; z-index: 1; max-width: 1320px; margin: 0 auto 16px; padding: 0 clamp(16px, 4vw, 40px); }
+.reframe-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: linear-gradient(180deg, rgba(255,122,60,0.10), rgba(255,122,60,0.04));
+  border: 1px solid rgba(255,122,60,0.35); border-radius: 14px; padding: 14px 16px;
+}
+.reframe-card .big { font-size: 24px; line-height: 1; }
+.reframe-card b { color: var(--accent); }
+.reframe-card p { margin: 4px 0 0; color: #d7ddd6; font-size: 14px; line-height: 1.5; }
+.reframe-card .sub { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+
+/* "watch a live match" label over the field (mobile) — kills the "tap to play" instinct */
+.watchcap { text-align: center; font-weight: 700; color: var(--accent); font-size: 13px; letter-spacing: 0.5px; text-transform: uppercase; margin: 0 0 8px; }
+
 /* ---------- mobile ---------- */
 @media (max-width: 600px) {
   .starfixed { top: 8px; right: 8px; padding: 6px 11px; font-size: 11px; }
-  .hero { padding: 40px 16px 12px; }
-  .hero .tag { font-size: 14px; }
+  .hero { padding: 34px 18px 14px; }
+  .hero h1 { font-size: 40px; }
+  .hero .lede { font-size: 25px; margin-bottom: 12px; }
+  /* swap the long desktop tag for the short, line-broken mobile idea */
+  .tag-desktop { display: none; }
+  .tag-mobile { display: block; font-size: 17px; line-height: 1.5; color: #d7ddd6; max-width: 34ch; margin: 0 auto; }
+  .tag-mobile b { color: #fff; }
+  .reframe-mobile { display: block; }
+  .watchcap-mobile { display: block; }
+  /* Play / Compete is a dead end on a phone (it hands you terminal commands) */
+  #playBtn { display: none; }
   .card { padding: 14px; }
   .theater { padding: 12px; }
   .theater canvas { max-height: 54vh; }

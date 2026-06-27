@@ -47,12 +47,29 @@
       <div class="hero-inner">
         <h1>The Arena</h1>
         <p class="lede">You are the coach.</p>
-        <p class="tag">
+        <p class="tag tag-desktop">
           Design your soccer team's <b>brain</b> in plain words - your AI writes the code.
           Submit it and climb the ladder against the house bots and everyone else.
         </p>
+        <p class="tag tag-mobile">
+          Design your soccer team's <b>brain</b> in plain English.<br>
+          Your AI writes the code.<br>
+          Then it climbs an online ladder.
+        </p>
       </div>
     </header>
+
+    <!-- Mobile-only: the action lives on a computer, so reframe instead of a dead "Compete" button. -->
+    <div class="reframe reframe-mobile">
+      <div class="reframe-card">
+        <span class="big">💻</span>
+        <div>
+          <b>Built on your computer.</b>
+          <p>You coach in plain words; your AI agent writes the bot. Come back on a laptop to build one and compete.</p>
+          <div class="sub">For now, watch a live match and scout the ladder below. 👇</div>
+        </div>
+      </div>
+    </div>
 
     <div class="actions">
       <button id="playBtn" class="primary big" type="button">▶ Play / Compete</button>
@@ -78,6 +95,7 @@
             <span class="livebadge" id="conn">connecting…</span>
           </div>
         </div>
+        <p class="watchcap watchcap-mobile">▶ watch a live match</p>
         <div class="stagewrap"><canvas id="pitch" width="1050" height="680"></canvas></div>
         <div id="stageMsg" class="stagemsg"></div>
         <div class="controls">
